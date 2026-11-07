@@ -86,7 +86,7 @@ def main() -> None:
     if args.resources:
         resources = args.resources.resolve()
         if not resources.is_dir():
-        raise SystemExit(f"Resources directory does not exist: {resources}")
+            raise SystemExit(f"Resources directory does not exist: {resources}")
         for file in resources.rglob("*"):
             if file.is_file():
                 relative = file.relative_to(resources)
