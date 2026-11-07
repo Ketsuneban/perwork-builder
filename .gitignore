@@ -1,0 +1,15 @@
+# Generated projects and build output
+generated-project/
+build/
+.gradle/
+run/
+*.jar
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+
+# IDE
+.idea/
+.vscode/
