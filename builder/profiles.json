@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "profiles": [
+    {
+      "id": "minecraft-1.20.1-forge-mod",
+      "minecraft": "1.20.1",
+      "loader": "forge",
+      "kind": "mod",
+      "java": 17,
+      "gradle": "8.1.1",
+      "forge": "1.20.1-47.2.0",
+      "status": "starter"
+    }
+  ]
+}
