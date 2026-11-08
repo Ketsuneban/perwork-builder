@@ -36,8 +36,8 @@ def validate_args(args):
         raise SystemExit("mod-id must start with a lowercase letter and contain only lowercase letters, digits, or underscores")
     if not SAFE_VERSION.fullmatch(args.mod_version):
         raise SystemExit("Invalid mod-version")
-    if not args.mod_name.strip() or len(args.mod_name) > 128:
-        raise SystemExit("mod-name must be 1..128 characters")
+    if not args.mod_name.strip() or len(args.mod_name) > 128 or "\n" in args.mod_name or "\r" in args.mod_name:
+        raise SystemExit("mod-name must be 1..128 characters and contain no line breaks")
     if not args.source.is_dir():
         raise SystemExit(f"Source directory does not exist: {args.source}")
     if args.output.exists() and any(args.output.iterdir()):
