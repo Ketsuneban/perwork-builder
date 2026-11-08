@@ -83,7 +83,7 @@ def synchronize_forge_mod_id(java_root, mod_id):
     """Align Forge @Mod entrypoint IDs with the generated mods.toml."""
     java_files = list(java_root.rglob("*.java"))
     contents = {path: path.read_text(encoding="utf-8") for path in java_files}
-    annotation_pattern = re.compile(r'@Mod\\s*\\((?P<arguments>[^)]*)\\)')
+    annotation_pattern = re.compile(r'@Mod\s*\((?P<arguments>[^)]*)\)')
     updated_annotations = 0
     updated_constants = set()
 
@@ -96,7 +96,7 @@ def synchronize_forge_mod_id(java_root, mod_id):
             first, separator, rest = arguments.partition(",")
             first = first.strip()
             prefix = ""
-            if re.match(r'^value\\s*=', first):
+            if re.match(r'^value\s*=', first):
                 first = first.split("=", 1)[1].strip()
                 prefix = "value = "
 
@@ -105,29 +105,29 @@ def synchronize_forge_mod_id(java_root, mod_id):
                 new_first = prefix + '"' + mod_id + '"'
                 return "@Mod(" + new_first + (separator + rest if separator else "") + ")"
 
-            if not re.fullmatch(r'[A-Za-z_$][\\w$]*(?:\\s*\\.\\s*[A-Za-z_$][\\w$]*)*', first):
+            if not re.fullmatch(r'[A-Za-z_$][\w$]*(?:\s*\.\s*[A-Za-z_$][\w$]*)*', first):
                 raise SystemExit(
                     f"Cannot synchronize Forge @Mod ID in {path}. "
                     'Use @Mod("id") or @Mod(SomeClass.MOD_ID) with a static final String field.'
                 )
 
-            parts = re.split(r'\\s*\\.\\s*', first)
+            parts = re.split(r'\s*\.\s*', first)
             field_name = parts[-1]
             candidates = java_files
             if len(parts) > 1:
                 owner_name = parts[-2]
                 owner_files = [
                     candidate for candidate in java_files
-                    if re.search(r'\\bclass\\s+' + re.escape(owner_name) + r'\\b', contents[candidate])
+                    if re.search(r'\bclass\s+' + re.escape(owner_name) + r'\b', contents[candidate])
                 ]
                 if owner_files:
                     candidates = owner_files
 
             declaration = re.compile(
-                r'(?P<prefix>\\b(?:(?:public|protected|private)\\s+)?'
-                r'(?:(?:static|final)\\s+)*String\\s+'
+                r'(?P<prefix>\b(?:(?:public|protected|private)\s+)?'
+                r'(?:(?:static|final)\s+)*String\s+'
                 + re.escape(field_name)
-                + r'\\s*=\\s*)(?P<quote>")[^"\\r\\n]*(?P=quote)'
+                + r'\s*=\s*)(?P<quote>")[^"\r\n]*(?P=quote)'
             )
             declarations = [
                 (candidate, declaration.search(contents[candidate]))
