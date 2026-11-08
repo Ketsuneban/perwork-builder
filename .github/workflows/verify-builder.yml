@@ -8,6 +8,15 @@ on:
       - "examples/**"
       - ".github/workflows/verify-builder.yml"
       - ".github/workflows/build-generated-project.yml"
+      - "SUPPORTED_PROFILES.md"
+  pull_request:
+    branches: [main]
+    paths:
+      - "builder/**"
+      - "examples/**"
+      - ".github/workflows/verify-builder.yml"
+      - ".github/workflows/build-generated-project.yml"
+      - "SUPPORTED_PROFILES.md"
   workflow_dispatch:
 
 permissions:
