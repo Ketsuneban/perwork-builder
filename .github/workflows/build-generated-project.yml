@@ -1,5 +1,5 @@
 name: Build uploaded Minecraft project
-run-name: PERWORK build \${{ inputs.job_id }}
+run-name: PERWORK build ${{ inputs.job_id }}
 
 on:
   workflow_dispatch:
@@ -10,7 +10,7 @@ on:
         type: string
 
 concurrency:
-  group: perwork-builder-\${{ inputs.job_id }}
+  group: perwork-builder-${{ inputs.job_id }}
   cancel-in-progress: false
 
 jobs:
@@ -34,16 +34,16 @@ jobs:
       - name: Fetch source using GitHub OIDC
         shell: bash
         env:
-          JOB_ID: \${{ inputs.job_id }}
+          JOB_ID: ${{ inputs.job_id }}
           WORKER_URL: https://perwork.okey-g00gle3000.workers.dev
         run: |
           set -euo pipefail
           mkdir -p perwork-context/builder
           printf 'Preparing PERWORK build %s\n' "$JOB_ID" > perwork-context/build.log
 
-          TOKEN_URL="\${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=perwork-builder"
+          TOKEN_URL="${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=perwork-builder"
           OIDC_TOKEN="$(curl --fail --silent --show-error \
-            -H "Authorization: bearer \${ACTIONS_ID_TOKEN_REQUEST_TOKEN}" \
+            -H "Authorization: bearer ${ACTIONS_ID_TOKEN_REQUEST_TOKEN}" \
             "$TOKEN_URL" | python -c "import json,sys; print(json.load(sys.stdin)['value'])")"
 
           curl --fail --silent --show-error \
@@ -88,7 +88,7 @@ jobs:
       - name: Upload prepared project
         uses: actions/upload-artifact@v4
         with:
-          name: perwork-input-\${{ inputs.job_id }}
+          name: perwork-input-${{ inputs.job_id }}
           path: perwork-context/
           if-no-files-found: error
           retention-days: 1
@@ -100,13 +100,13 @@ jobs:
     timeout-minutes: 30
     permissions: {}
     outputs:
-      compile_outcome: \${{ steps.compile.outcome }}
-      artifact_id: \${{ steps.upload.outputs['artifact-id'] }}
+      compile_outcome: ${{ steps.compile.outcome }}
+      artifact_id: ${{ steps.upload.outputs['artifact-id'] }}
     steps:
       - name: Download prepared project
         uses: actions/download-artifact@v4
         with:
-          name: perwork-input-\${{ inputs.job_id }}
+          name: perwork-input-${{ inputs.job_id }}
           path: perwork-context
 
       - name: Set up Java
@@ -134,7 +134,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: perwork-build-\${{ inputs.job_id }}
+          name: perwork-build-${{ inputs.job_id }}
           path: |
             perwork-context/build.log
             perwork-context/project/build/libs/*.jar
@@ -152,19 +152,19 @@ jobs:
       - name: Report result to PERWORK
         shell: bash
         env:
-          JOB_ID: \${{ inputs.job_id }}
+          JOB_ID: ${{ inputs.job_id }}
           WORKER_URL: https://perwork.okey-g00gle3000.workers.dev
-          PREPARE_RESULT: \${{ needs.prepare.result }}
-          BUILD_RESULT: \${{ needs.build.result }}
-          COMPILE_OUTCOME: \${{ needs.build.outputs.compile_outcome }}
-          ARTIFACT_ID: \${{ needs.build.outputs.artifact_id }}
-          RESULT: \${{ (needs.prepare.result == 'success' && needs.build.result == 'success' && needs.build.outputs.compile_outcome == 'success' && needs.build.outputs.artifact_id != '') && 'success' || 'failure' }}
-          MESSAGE: \${{ needs.prepare.result != 'success' && 'Project preparation failed. Check the preparation logs.' || (needs.build.outputs.compile_outcome == 'success' && 'Minecraft project compiled successfully.' || 'Build failed. Download the diagnostic artifact for build.log.') }}
+          PREPARE_RESULT: ${{ needs.prepare.result }}
+          BUILD_RESULT: ${{ needs.build.result }}
+          COMPILE_OUTCOME: ${{ needs.build.outputs.compile_outcome }}
+          ARTIFACT_ID: ${{ needs.build.outputs.artifact_id }}
+          RESULT: ${{ (needs.prepare.result == 'success' && needs.build.result == 'success' && needs.build.outputs.compile_outcome == 'success' && needs.build.outputs.artifact_id != '') && 'success' || 'failure' }}
+          MESSAGE: ${{ needs.prepare.result != 'success' && 'Project preparation failed. Check the preparation logs.' || (needs.build.outputs.compile_outcome == 'success' && 'Minecraft project compiled successfully.' || 'Build failed. Download the diagnostic artifact for build.log.') }}
         run: |
           set -euo pipefail
-          TOKEN_URL="\${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=perwork-builder"
+          TOKEN_URL="${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=perwork-builder"
           OIDC_TOKEN="$(curl --fail --silent --show-error \
-            -H "Authorization: bearer \${ACTIONS_ID_TOKEN_REQUEST_TOKEN}" \
+            -H "Authorization: bearer ${ACTIONS_ID_TOKEN_REQUEST_TOKEN}" \
             "$TOKEN_URL" | python -c "import json,sys; print(json.load(sys.stdin)['value'])")"
 
           python - <<'PY' > "$RUNNER_TEMP/perwork-result.json"
