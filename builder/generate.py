@@ -87,6 +87,25 @@ def synchronize_forge_mod_id(java_root, mod_id):
     pending_constants = {}
     updated_annotations = 0
 
+    subscriber_pattern = re.compile(r'@Mod\.EventBusSubscriber\s*\((?P<arguments>[^)]*)\)')
+    updated_subscribers = 0
+
+    for path in java_files:
+        def replace_subscriber(match):
+            nonlocal updated_subscribers
+            arguments = match.group("arguments")
+            modid_pattern = re.compile(r'(\bmodid\s*=\s*)("[^"\r\n]*"|[^,]+)')
+            if modid_pattern.search(arguments):
+                arguments = modid_pattern.sub(lambda found: found.group(1) + '"' + mod_id + '"', arguments, count=1)
+            elif arguments.strip():
+                arguments = arguments.rstrip() + ', modid = "' + mod_id + '"'
+            else:
+                arguments = 'modid = "' + mod_id + '"'
+            updated_subscribers += 1
+            return "@Mod.EventBusSubscriber(" + arguments + ")"
+
+        contents[path] = subscriber_pattern.sub(replace_subscriber, contents[path])
+
     for path in java_files:
         def replace_annotation(match):
             nonlocal updated_annotations
@@ -164,10 +183,11 @@ def synchronize_forge_mod_id(java_root, mod_id):
     for path, text in contents.items():
         path.write_text(text, encoding="utf-8")
     print(
-        f"Synchronized {updated_annotations} Forge @Mod annotation(s) "
-        f"and {updated_constants} ID constant(s) to '{mod_id}'."
+        f"Synchronized {updated_annotations} Forge @Mod annotation(s), "
+        f"{updated_subscribers} EventBusSubscriber annotation(s), and "
+        f"{updated_constants} ID constant(s) to '{mod_id}'."
     )
-    return updated_annotations
+    return updated_annotations + updated_subscribers
 
 def toml_string(value):
     clean = value.replace("\\", "\\\\").replace('"', '\\"').replace("\r", " ").replace("\n", " ")
@@ -202,6 +222,15 @@ def main():
     meta_inf = output / "src" / "main" / "resources" / "META-INF"
     meta_inf.mkdir(parents=True, exist_ok=True)
     (meta_inf / "mods.toml").write_text(mods_toml(profile, args), encoding="utf-8")
+    pack_metadata = output / "src" / "main" / "resources" / "pack.mcmeta"
+    if not pack_metadata.exists():
+        pack_metadata.write_text(json.dumps({
+            "pack": {
+                "pack_format": 15,
+                "description": f"{args.mod_name} resources"
+            }
+        }, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+        print("Added default pack.mcmeta (pack_format 15).")
     print(f"Generated Gradle project: {java_count} Java file(s), {resource_count} resource file(s).")
     print(f"Profile: Minecraft {profile['minecraft']} / {profile['loader']} / {profile['kind']}")
 

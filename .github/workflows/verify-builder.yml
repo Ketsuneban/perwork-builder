@@ -67,6 +67,7 @@ jobs:
       - name: Synchronize Forge entrypoint ID with generated metadata
         run: |
           python - <<'PY'
+          import json
           import subprocess
           import sys
           import tempfile
@@ -76,11 +77,13 @@ jobs:
               "literal": '''package test;
           import net.minecraftforge.fml.common.Mod;
           @Mod("hellomod")
+          @Mod.EventBusSubscriber(modid = "hellomod")
           public final class HelloMod {}
           ''',
               "constant": '''package test;
           import net.minecraftforge.fml.common.Mod;
           @Mod(HelloMod.MOD_ID)
+          @Mod.EventBusSubscriber(modid = "hellomod")
           public final class HelloMod {
               public static final String MOD_ID = "hellomod";
           }
@@ -104,6 +107,9 @@ jobs:
                   generated_java = next((output / "src/main/java").rglob("HelloMod.java")).read_text(encoding="utf-8")
                   metadata = (output / "src/main/resources/META-INF/mods.toml").read_text(encoding="utf-8")
                   assert 'modId="perwork_test"' in metadata
+                  assert '@Mod.EventBusSubscriber(modid = "perwork_test")' in generated_java
+                  pack_metadata = json.loads((output / "src/main/resources/pack.mcmeta").read_text(encoding="utf-8"))
+                  assert pack_metadata["pack"]["pack_format"] == 15
                   if name == "literal":
                       assert '@Mod("perwork_test")' in generated_java
                   else:
