@@ -84,12 +84,10 @@ def synchronize_forge_mod_id(java_root, mod_id):
     java_files = list(java_root.rglob("*.java"))
     contents = {path: path.read_text(encoding="utf-8") for path in java_files}
     annotation_pattern = re.compile(r'@Mod\s*\((?P<arguments>[^)]*)\)')
+    pending_constants = {}
     updated_annotations = 0
-    updated_constants = set()
 
     for path in java_files:
-        source_text = contents[path]
-
         def replace_annotation(match):
             nonlocal updated_annotations
             arguments = match.group("arguments")
@@ -103,7 +101,7 @@ def synchronize_forge_mod_id(java_root, mod_id):
             if len(first) >= 2 and first[0] == '"' and first[-1] == '"':
                 updated_annotations += 1
                 new_first = prefix + '"' + mod_id + '"'
-                return "@Mod(" + new_first + (separator + rest if separator else "") + ")"
+                return "@Mod(" + new_first + (separator + rest if separator else ")")
 
             if not re.fullmatch(r'[A-Za-z_$][\w$]*(?:\s*\.\s*[A-Za-z_$][\w$]*)*', first):
                 raise SystemExit(
@@ -130,35 +128,44 @@ def synchronize_forge_mod_id(java_root, mod_id):
                 + r'\s*=\s*)(?P<quote>")[^"\r\n]*(?P=quote)'
             )
             declarations = [
-                (candidate, declaration.search(contents[candidate]))
-                for candidate in candidates
+                candidate for candidate in candidates
+                if declaration.search(contents[candidate])
             ]
-            declarations = [(candidate, found) for candidate, found in declarations if found]
             if len(declarations) != 1:
                 raise SystemExit(
                     f"Cannot uniquely resolve Forge @Mod ID constant '{first}' in {path}. "
                     'Declare one static final String constant or use a literal @Mod("id").'
                 )
 
-            constant_file, constant_match = declarations[0]
-            value_start = constant_match.start("quote") + 1
-            value_end = constant_match.end("quote") - 1
-            contents[constant_file] = (
-                contents[constant_file][:value_start]
-                + mod_id
-                + contents[constant_file][value_end:]
-            )
-            updated_constants.add(constant_file)
+            pending_constants.setdefault(declarations[0], set()).add(field_name)
             updated_annotations += 1
             return match.group(0)
 
-        contents[path] = annotation_pattern.sub(replace_annotation, source_text)
+        contents[path] = annotation_pattern.sub(replace_annotation, contents[path])
+
+    updated_constants = 0
+    for path, field_names in pending_constants.items():
+        for field_name in field_names:
+            declaration = re.compile(
+                r'(?P<prefix>\b(?:(?:public|protected|private)\s+)?'
+                r'(?:(?:static|final)\s+)*String\s+'
+                + re.escape(field_name)
+                + r'\s*=\s*)(?P<quote>")[^"\r\n]*(?P=quote)'
+            )
+            contents[path], count = declaration.subn(
+                lambda match: match.group("prefix") + '"' + mod_id + '"',
+                contents[path],
+                count=1
+            )
+            if count != 1:
+                raise SystemExit(f"Unable to update Forge mod ID constant '{field_name}' in {path}.")
+            updated_constants += 1
 
     for path, text in contents.items():
         path.write_text(text, encoding="utf-8")
     print(
         f"Synchronized {updated_annotations} Forge @Mod annotation(s) "
-        f"and {len(updated_constants)} ID constant(s) to '{mod_id}'."
+        f"and {updated_constants} ID constant(s) to '{mod_id}'."
     )
     return updated_annotations
 
