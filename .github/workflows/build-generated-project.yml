@@ -46,15 +46,35 @@ jobs:
             -H "Authorization: bearer ${ACTIONS_ID_TOKEN_REQUEST_TOKEN}" \
             "$TOKEN_URL" | python -c "import json,sys; print(json.load(sys.stdin)['value'])")"
 
-          curl --fail --silent --show-error \
-            -H "Authorization: Bearer $OIDC_TOKEN" \
-            "$WORKER_URL/api/builder/internal/config?job_id=$JOB_ID" \
-            -o "$RUNNER_TEMP/perwork-job.json"
+          # Workers KV is eventually consistent across regions. Retry cold reads
+          # briefly so a just-created job/source is available to the GitHub runner.
+          fetch_with_retry() {
+            local url="$1"
+            local destination="$2"
+            local label="$3"
+            for attempt in $(seq 1 12); do
+              if curl --fail --silent --show-error --location \
+                -H "Authorization: Bearer $OIDC_TOKEN" \
+                "$url" -o "$destination"; then
+                return 0
+              fi
+              rm -f "$destination"
+              if [ "$attempt" -lt 12 ]; then
+                echo "$label is not visible yet (attempt $attempt/12); retrying in 5 seconds."
+                sleep 5
+              fi
+            done
+            echo "Unable to fetch $label after 12 attempts." >&2
+            return 1
+          }
 
-          curl --fail --silent --show-error --location \
-            -H "Authorization: Bearer $OIDC_TOKEN" \
+          fetch_with_retry \
+            "$WORKER_URL/api/builder/internal/config?job_id=$JOB_ID" \
+            "$RUNNER_TEMP/perwork-job.json" "build configuration"
+
+          fetch_with_retry \
             "$WORKER_URL/api/builder/internal/source?job_id=$JOB_ID" \
-            -o "$RUNNER_TEMP/perwork-source.zip"
+            "$RUNNER_TEMP/perwork-source.zip" "source ZIP"
           unset OIDC_TOKEN
 
           python builder/safe_extract.py \
