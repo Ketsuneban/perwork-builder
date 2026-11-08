@@ -1,79 +1,49 @@
 # PERWORK Builder
 
-Minecraft project generation and build tooling for Java Studio's **Create** section.
+Cloud build backend for Java Studio's **Создание** section. User projects are stored temporarily in a private Cloudflare R2 bucket and are never committed to this public repository.
 
-> This repository is the public build-tooling layer. It does not contain PERWORK's private site code, credentials, or user projects.
+## Flow
+1. Java Studio packages the selected \`main/\` folder into a ZIP.
+2. The PERWORK Worker verifies Turnstile, validates the selected profile and stores the ZIP in private R2.
+3. The Worker dispatches \`build-generated-project.yml\` with a random job ID.
+4. A fresh GitHub Actions runner authenticates using GitHub Actions OIDC, retrieves only that job's source/configuration, validates the archive, generates a Gradle project and runs the build.
+5. The runner uploads only compiled JAR(s) and \`build.log\` as a short-lived Actions artifact.
+6. The runner reports its result through an OIDC-authenticated Worker callback. Java Studio polls and downloads the artifact through the Worker.
 
-## Current scope
+## Current verified profile
+Only profiles marked \`supported\` in \`builder/profiles.json\` are enabled for compilation.
 
-This starter implementation provides:
-- A project generator for Minecraft Java projects.
-- Explicit build profiles (Minecraft version, loader, and project kind).
-- A GitHub Actions workflow that can build a generated project.
-- Build artifacts as downloadable JARs.
+| Minecraft | Loader | Type | Java | Status |
+|---|---|---|---:|---|
+| 1.20.1 | Forge | Mod | 17 | CI verification pending |
 
-The first supported profile is **Minecraft 1.20.1 + Forge + mod**. Other versions/loaders are intentionally not advertised as supported until their templates and dependency coordinates are verified.
+Other combinations in the Java Studio selectors are not buildable until their template passes CI.
 
-## Repository layout
+## Input contract and limits
+The ZIP must contain one \`main/\` folder. Java files may be in \`main/java/**\` or directly under \`main/**\`; optional resources in \`main/resources/**\` are copied into the Gradle project.
+- ZIP upload: 20 MiB
+- Entries: maximum 1,000
+- Total uncompressed size: maximum 100 MiB
+- Individual file: maximum 20 MiB
+- Path traversal, symlinks and encrypted ZIP entries are rejected.
 
-- `builder/generate.py` — generates a Gradle project from a Java source directory.
-- `builder/profiles.json` — supported profiles and template metadata.
-- `.github/workflows/build-generated-project.yml` — builds a generated project archive.
-- `examples/` — minimal input example.
+## Cloudflare configuration
+Bind a **private R2 bucket** to the Worker as \`BUILDER_UPLOADS\`. Set Worker secret \`GITHUB_TOKEN\` to a fine-grained token with access to both \`Ketsuneban/perwork\` (existing Worker features) and \`Ketsuneban/perwork-builder\`, with:
+- \`Actions: read and write\` on \`Ketsuneban/perwork-builder\` (workflow dispatch and artifact download);
+- \`Metadata: read\` on \`Ketsuneban/perwork-builder\`;
+- existing permissions for the \`Ketsuneban/perwork\` commit monitor and revert feature.
 
-## Generate a project
+Create a Cloudflare Turnstile widget for the site hostnames. Put its public site key in \`BUILDER_TURNSTILE_SITE_KEY\` in \`src/app.js\` and its secret in Worker secret \`TURNSTILE_SECRET_KEY\`. The Worker rejects new builds until Turnstile is verified.
 
-Requires Python 3.11+.
+## OIDC trust
+Internal Worker endpoints accept only a valid GitHub Actions OIDC token with issuer \`https://token.actions.githubusercontent.com\`, audience \`perwork-builder\`, repository \`Ketsuneban/perwork-builder\`, workflow \`.github/workflows/build-generated-project.yml\`, branch \`refs/heads/main\`, and event \`workflow_dispatch\`.
 
-```bash
-python builder/generate.py \
-  --source examples/main \
-  --output generated-project \
-  --minecraft 1.20.1 \
-  --loader forge \
-  --kind mod \
-  --mod-id examplemod \
-  --mod-name "Example Mod" \
-  --mod-version 1.0.0
-```
+The uploaded Gradle build receives no GitHub token, Cloudflare secret or OIDC token. Its source ZIP is deleted after the result callback and Actions artifacts expire after one day. Configure an R2 lifecycle rule to remove stale \`builder/\` objects after two days.
 
-Then run the generated Gradle wrapper:
-
-```bash
+## Local test
+\`\`\`bash
+python -m py_compile builder/generate.py builder/safe_extract.py
+python builder/generate.py --source examples/main --output generated-project --minecraft 1.20.1 --loader forge --kind mod --mod-id examplemod --mod-name "Example Mod"
 cd generated-project
-./gradlew build
-```
-
-On Windows use `gradlew.bat build`.
-
-## Input contract
-
-The source directory may contain Java files under either:
-- `main/java/**` (preferred), or
-- Java files directly beneath `main/**` (generator places them under `src/main/java`).
-
-Optional resources can be supplied with `--resources` pointing to a directory. The generator copies those files into `src/main/resources`.
-
-The generator does **not** execute uploaded Java or Gradle code. Build execution must happen in a disposable isolated worker. Do not run untrusted projects on the PERWORK web server or expose GitHub credentials to the generated build.
-
-## GitHub Actions
-
-The workflow accepts a ZIP project artifact named `generated-project.zip` from a prior workflow/run, extracts it, runs Gradle, and uploads the resulting JARs. It is a starter workflow for trusted project artifacts; a production API must create isolated build jobs and pass artifacts securely.
-
-## Security notes
-
-- Never commit tokens, private keys, Firebase credentials, or user source projects.
-- Uploaded archives must be size-limited and validated against path traversal.
-- Build jobs must have CPU, memory, disk, and time limits and no access to PERWORK secrets.
-- Treat Gradle scripts and annotation processors as executable untrusted code.
-- Public Actions logs and artifacts may expose uploaded project contents; use private, short-lived artifacts for user builds.
-
-## Roadmap
-
-1. Add and verify loader/version profiles.
-2. Add a server-side job API and isolated worker.
-3. Add upload validation, job status, logs, and artifact expiration.
-4. Connect Java Studio to this repository's versioned generator.
-5. Add automated fixture builds for every declared profile.
-
-See [SUPPORTED_PROFILES.md](SUPPORTED_PROFILES.md) for the currently declared profile.
+gradle --no-daemon build
+\`\`\`
