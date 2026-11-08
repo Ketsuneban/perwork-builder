@@ -191,13 +191,13 @@ jobs:
         if: steps.compile.outcome == 'success'
         shell: bash
         env:
-          JOB_ID: ${{{ inputs.job_id }}
+          JOB_ID: ${{ inputs.job_id }}
           WORKER_URL: https://perwork.okey-g00gle3000.workers.dev
         run: |
           set -euo pipefail
-          TOKEN_URL="${{ACTIONS_ID_TOKEN_REQUEST_URL}&audience=perwork-builder"
+          TOKEN_URL="${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=perwork-builder"
           OIDC_TOKEN="$(curl --fail --silent --show-error --max-time 15 \
-            -H "Authorization: bearer ${{ACTIONS_ID_TOKEN_REQUEST_TOKEN}" \
+            -H "Authorization: bearer ${ACTIONS_ID_TOKEN_REQUEST_TOKEN}" \
             "$TOKEN_URL" | python -c "import json,sys; print(json.load(sys.stdin)['value'])")"
           curl --fail --silent --show-error --max-time 10 -X POST \
             -H "Authorization: Bearer $OIDC_TOKEN" \
