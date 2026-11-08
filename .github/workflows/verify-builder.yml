@@ -57,6 +57,33 @@ jobs:
         run: |
           python -m py_compile builder/generate.py builder/safe_extract.py
           python builder/generate.py --source examples/main --output generated-project --minecraft 1.20.1 --loader forge --kind mod --mod-id examplemod --mod-name "PERWORK Example Mod" --mod-version 1.0.0
+      - name: Reject control characters in mod names
+        run: |
+          python - <<'PY'
+          import subprocess
+          import sys
+          import tempfile
+          from pathlib import Path
+
+          with tempfile.TemporaryDirectory() as tmp:
+              result = subprocess.run(
+                  [
+                      sys.executable, "builder/generate.py",
+                      "--source", "examples/main",
+                      "--output", str(Path(tmp) / "generated"),
+                      "--minecraft", "1.20.1",
+                      "--loader", "forge",
+                      "--kind", "mod",
+                      "--mod-id", "examplemod",
+                      "--mod-name", "Bad\\tName",
+                  ],
+                  text=True,
+                  capture_output=True,
+              )
+          assert result.returncode != 0, "Generator accepted a tab character in mod-name."
+          assert "control characters" in result.stderr, result.stderr
+          print("Generator correctly rejects control characters in mod-name.")
+          PY
       - name: Build example mod in isolated Gradle/JDK 17 container
         working-directory: generated-project
         run: |
