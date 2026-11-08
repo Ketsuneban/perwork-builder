@@ -79,6 +79,96 @@ def copy_java_files(source, destination):
         copied += 1
     return copied
 
+def synchronize_forge_mod_id(java_root, mod_id):
+    """Align Forge @Mod entrypoint IDs with the generated mods.toml."""
+    java_files = list(java_root.rglob("*.java"))
+    contents = {path: path.read_text(encoding="utf-8") for path in java_files}
+    annotation_pattern = re.compile(r'@Mod\s*\((?P<arguments>[^)]*)\)')
+    pending_constants = {}
+    updated_annotations = 0
+
+    for path in java_files:
+        def replace_annotation(match):
+            nonlocal updated_annotations
+            arguments = match.group("arguments")
+            first, separator, rest = arguments.partition(",")
+            first = first.strip()
+            prefix = ""
+            if re.match(r'^value\s*=', first):
+                first = first.split("=", 1)[1].strip()
+                prefix = "value = "
+
+            if len(first) >= 2 and first[0] == '"' and first[-1] == '"':
+                updated_annotations += 1
+                new_first = prefix + '"' + mod_id + '"'
+                return "@Mod(" + new_first + (separator + rest if separator else "") + ")"
+
+            if not re.fullmatch(r'[A-Za-z_$][\w$]*(?:\s*\.\s*[A-Za-z_$][\w$]*)*', first):
+                raise SystemExit(
+                    f"Cannot synchronize Forge @Mod ID in {path}. "
+                    'Use @Mod("id") or @Mod(SomeClass.MOD_ID) with a static final String field.'
+                )
+
+            parts = re.split(r'\s*\.\s*', first)
+            field_name = parts[-1]
+            candidates = java_files
+            if len(parts) > 1:
+                owner_name = parts[-2]
+                owner_files = [
+                    candidate for candidate in java_files
+                    if re.search(r'\bclass\s+' + re.escape(owner_name) + r'\b', contents[candidate])
+                ]
+                if owner_files:
+                    candidates = owner_files
+
+            declaration = re.compile(
+                r'(?P<prefix>\b(?:(?:public|protected|private)\s+)?'
+                r'(?:(?:static|final)\s+)*String\s+'
+                + re.escape(field_name)
+                + r'\s*=\s*)(?P<quote>")[^"\r\n]*(?P=quote)'
+            )
+            declarations = [
+                candidate for candidate in candidates
+                if declaration.search(contents[candidate])
+            ]
+            if len(declarations) != 1:
+                raise SystemExit(
+                    f"Cannot uniquely resolve Forge @Mod ID constant '{first}' in {path}. "
+                    'Declare one static final String constant or use a literal @Mod("id").'
+                )
+
+            pending_constants.setdefault(declarations[0], set()).add(field_name)
+            updated_annotations += 1
+            return match.group(0)
+
+        contents[path] = annotation_pattern.sub(replace_annotation, contents[path])
+
+    updated_constants = 0
+    for path, field_names in pending_constants.items():
+        for field_name in field_names:
+            declaration = re.compile(
+                r'(?P<prefix>\b(?:(?:public|protected|private)\s+)?'
+                r'(?:(?:static|final)\s+)*String\s+'
+                + re.escape(field_name)
+                + r'\s*=\s*)(?P<quote>")[^"\r\n]*(?P=quote)'
+            )
+            contents[path], count = declaration.subn(
+                lambda match: match.group("prefix") + '"' + mod_id + '"',
+                contents[path],
+                count=1
+            )
+            if count != 1:
+                raise SystemExit(f"Unable to update Forge mod ID constant '{field_name}' in {path}.")
+            updated_constants += 1
+
+    for path, text in contents.items():
+        path.write_text(text, encoding="utf-8")
+    print(
+        f"Synchronized {updated_annotations} Forge @Mod annotation(s) "
+        f"and {updated_constants} ID constant(s) to '{mod_id}'."
+    )
+    return updated_annotations
+
 def toml_string(value):
     clean = value.replace("\\", "\\\\").replace('"', '\\"').replace("\r", " ").replace("\n", " ")
     return '"' + clean + '"'
@@ -90,9 +180,11 @@ def main():
     source, output = args.source.resolve(), args.output.resolve()
     java_root = find_java_root(source)
     output.mkdir(parents=True, exist_ok=True)
-    java_count = copy_java_files(java_root, output / "src" / "main" / "java")
+    java_destination = output / "src" / "main" / "java"
+    java_count = copy_java_files(java_root, java_destination)
     if not java_count:
         raise SystemExit("No .java files found in uploaded main/ directory")
+    synchronize_forge_mod_id(java_destination, args.mod_id)
     resources = args.resources.resolve() if args.resources else source / "resources"
     resource_count = copy_tree_files(resources, output / "src" / "main" / "resources")
     settings_lines = [
