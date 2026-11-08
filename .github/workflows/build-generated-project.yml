@@ -147,7 +147,34 @@ jobs:
         working-directory: perwork-context/project
         run: |
           set -o pipefail
-          gradle --no-daemon --stacktrace build 2>&1 | tee -a "$GITHUB_WORKSPACE/perwork-context/build.log"
+          # Do not pass the runner's Actions/GitHub environment or any preloaded
+          # Gradle init scripts to the source-compilation process.
+          CLEAN_GRADLE_HOME="$RUNNER_TEMP/perwork-gradle-home"
+          mkdir -p "$CLEAN_GRADLE_HOME"
+          env -i \
+            HOME="$CLEAN_GRADLE_HOME" \
+            GRADLE_USER_HOME="$CLEAN_GRADLE_HOME/.gradle" \
+            JAVA_HOME="$JAVA_HOME" \
+            PATH="$PATH" \
+            CI=true \
+            gradle --no-daemon --stacktrace build 2>&1 | tee -a "$GITHUB_WORKSPACE/perwork-context/build.log"
+
+      - name: Require a non-empty compiled JAR
+        if: steps.compile.outcome == 'success'
+        shell: bash
+        working-directory: perwork-context/project
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          jars=(build/libs/*.jar)
+          for jar in "${jars[@]}"; do
+            if [[ -s "$jar" ]]; then
+              echo "Verified compiled JAR: $jar"
+              exit 0
+            fi
+          done
+          echo "Gradle completed without producing a non-empty JAR." >&2
+          exit 1
 
       - name: Upload JAR and build log
         id: upload
@@ -179,7 +206,7 @@ jobs:
           COMPILE_OUTCOME: ${{ needs.build.outputs.compile_outcome }}
           ARTIFACT_ID: ${{ needs.build.outputs.artifact_id }}
           RESULT: ${{ (needs.prepare.result == 'success' && needs.build.result == 'success' && needs.build.outputs.compile_outcome == 'success' && needs.build.outputs.artifact_id != '') && 'success' || 'failure' }}
-          MESSAGE: ${{ needs.prepare.result != 'success' && 'Project preparation failed. Check the preparation logs.' || (needs.build.outputs.compile_outcome == 'success' && 'Minecraft project compiled successfully.' || 'Build failed. Download the diagnostic artifact for build.log.') }}
+          MESSAGE: ${{ needs.prepare.result != 'success' && 'Project preparation failed. Check the preparation logs.' || (needs.build.result == 'success' && needs.build.outputs.compile_outcome == 'success' && 'Minecraft project compiled and a non-empty JAR was verified.' || 'Build failed or produced no JAR. Download the diagnostic artifact for build.log.') }}
         run: |
           set -euo pipefail
           TOKEN_URL="${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=perwork-builder"
