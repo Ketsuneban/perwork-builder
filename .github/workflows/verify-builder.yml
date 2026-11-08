@@ -64,6 +64,54 @@ jobs:
         run: |
           python -m py_compile builder/generate.py builder/safe_extract.py
           python builder/generate.py --source examples/main --output generated-project --minecraft 1.20.1 --loader forge --kind mod --mod-id examplemod --mod-name "PERWORK Example Mod" --mod-version 1.0.0
+      - name: Synchronize Forge entrypoint ID with generated metadata
+        run: |
+          python - <<'PY'
+          import subprocess
+          import sys
+          import tempfile
+          from pathlib import Path
+
+          cases = {
+              "literal": '''package test;
+          import net.minecraftforge.fml.common.Mod;
+          @Mod("hellomod")
+          public final class HelloMod {}
+          ''',
+              "constant": '''package test;
+          import net.minecraftforge.fml.common.Mod;
+          @Mod(HelloMod.MOD_ID)
+          public final class HelloMod {
+              public static final String MOD_ID = "hellomod";
+          }
+          ''',
+          }
+          with tempfile.TemporaryDirectory() as tmp:
+              root = Path(tmp)
+              for name, source_text in cases.items():
+                  main = root / name / "main"
+                  source_file = main / "java" / "test" / "HelloMod.java"
+                  source_file.parent.mkdir(parents=True)
+                  source_file.write_text(source_text, encoding="utf-8")
+                  output = root / name / "out"
+                  subprocess.run([
+                      sys.executable, "builder/generate.py",
+                      "--source", str(main),
+                      "--output", str(output),
+                      "--minecraft", "1.20.1", "--loader", "forge", "--kind", "mod",
+                      "--mod-id", "perwork_test", "--mod-name", "PERWORK Test"
+                  ], check=True)
+                  generated_java = next((output / "src/main/java").rglob("HelloMod.java")).read_text(encoding="utf-8")
+                  metadata = (output / "src/main/resources/META-INF/mods.toml").read_text(encoding="utf-8")
+                  assert 'modId="perwork_test"' in metadata
+                  if name == "literal":
+                      assert '@Mod("perwork_test")' in generated_java
+                  else:
+                      assert '@Mod(HelloMod.MOD_ID)' in generated_java
+                      assert 'MOD_ID = "perwork_test"' in generated_java
+          print("Forge literal and constant @Mod IDs are synchronized with mods.toml.")
+          PY
+
       - name: Reject control characters in mod names
         run: |
           python - <<'PY'
