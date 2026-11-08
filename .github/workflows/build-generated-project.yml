@@ -41,7 +41,7 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p perwork-context/project
-          printf 'Preparing PERWORK build %s\\n' "$JOB_ID" > perwork-context/build.log
+          printf 'Preparing PERWORK build %s\n' "$JOB_ID" > perwork-context/build.log
 
       - name: Fetch source and configuration using GitHub OIDC
         shell: bash
@@ -56,8 +56,8 @@ jobs:
           fi
 
           TOKEN_URL="${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=perwork-builder"
-          OIDC_TOKEN="$(curl --fail --silent --show-error --max-time 15 \\
-            -H "Authorization: bearer ${ACTIONS_ID_TOKEN_REQUEST_TOKEN}" \\
+          OIDC_TOKEN="$(curl --fail --silent --show-error --max-time 15 \
+            -H "Authorization: bearer ${ACTIONS_ID_TOKEN_REQUEST_TOKEN}" \
             "$TOKEN_URL" | python -c "import json,sys; print(json.load(sys.stdin)['value'])")"
 
           # Workers KV is eventually consistent across regions. Retry cold reads
@@ -67,8 +67,8 @@ jobs:
             local destination="$2"
             local label="$3"
             for attempt in $(seq 1 12); do
-              if curl --fail --silent --show-error --location --max-time 30 \\
-                -H "Authorization: Bearer $OIDC_TOKEN" \\
+              if curl --fail --silent --show-error --location --max-time 30 \
+                -H "Authorization: Bearer $OIDC_TOKEN" \
                 "$url" -o "$destination"; then
                 return 0
               fi
@@ -82,17 +82,17 @@ jobs:
             return 1
           }
 
-          fetch_with_retry \\
-            "$WORKER_URL/api/builder/internal/config?job_id=$JOB_ID" \\
+          fetch_with_retry \
+            "$WORKER_URL/api/builder/internal/config?job_id=$JOB_ID" \
             "$RUNNER_TEMP/perwork-job.json" "build configuration"
 
-          fetch_with_retry \\
-            "$WORKER_URL/api/builder/internal/source?job_id=$JOB_ID" \\
+          fetch_with_retry \
+            "$WORKER_URL/api/builder/internal/source?job_id=$JOB_ID" \
             "$RUNNER_TEMP/perwork-source.zip" "source ZIP"
           unset OIDC_TOKEN
 
-          python builder/safe_extract.py \\
-            --archive "$RUNNER_TEMP/perwork-source.zip" \\
+          python builder/safe_extract.py \
+            --archive "$RUNNER_TEMP/perwork-source.zip" \
             --destination "$RUNNER_TEMP/perwork-source"
 
           python - <<'PY'
@@ -100,20 +100,20 @@ jobs:
           config = json.load(open(os.path.join(os.environ["RUNNER_TEMP"], "perwork-job.json"), encoding="utf-8"))
           for key in ("minecraft", "loader", "kind", "mod_id", "mod_name", "mod_version"):
               value = str(config.get(key, ""))
-              if "\\n" in value or "\\r" in value:
+              if "\n" in value or "\r" in value:
                   raise SystemExit(f"Invalid build setting: {key}")
               with open(os.environ["GITHUB_ENV"], "a", encoding="utf-8") as env:
-                  env.write(f"PERWORK_{key.upper()}={value}\\n")
+                  env.write(f"PERWORK_{key.upper()}={value}\n")
           PY
 
-          python builder/generate.py \\
-            --source "$RUNNER_TEMP/perwork-source/main" \\
-            --output perwork-context/project \\
-            --minecraft "$PERWORK_MINECRAFT" \\
-            --loader "$PERWORK_LOADER" \\
-            --kind "$PERWORK_KIND" \\
-            --mod-id "$PERWORK_MOD_ID" \\
-            --mod-name "$PERWORK_MOD_NAME" \\
+          python builder/generate.py \
+            --source "$RUNNER_TEMP/perwork-source/main" \
+            --output perwork-context/project \
+            --minecraft "$PERWORK_MINECRAFT" \
+            --loader "$PERWORK_LOADER" \
+            --kind "$PERWORK_KIND" \
+            --mod-id "$PERWORK_MOD_ID" \
+            --mod-name "$PERWORK_MOD_NAME" \
             --mod-version "$PERWORK_MOD_VERSION"
 
           # Keep only the generated project in the build workspace. No source
@@ -139,23 +139,23 @@ jobs:
           # The container sees only the generated project and an empty Gradle
           # cache. No Git checkout, OIDC request token, GITHUB_TOKEN, Actions
           # runtime token, Worker secret or runner filesystem is mounted.
-          docker run --rm \\
-            --network bridge \\
-            --user "$(id -u):$(id -g)" \\
-            --cap-drop ALL \\
-            --security-opt no-new-privileges:true \\
-            --pids-limit 512 \\
-            --memory 6g \\
-            --read-only \\
-            --tmpfs /tmp:rw,nosuid,nodev,size=1g \\
-            --mount "type=bind,src=$PWD,dst=/workspace" \\
-            --mount "type=bind,src=$CLEAN_GRADLE_HOME,dst=/gradle-home" \\
-            --workdir /workspace \\
-            --env HOME=/tmp \\
-            --env GRADLE_USER_HOME=/gradle-home \\
-            --env GRADLE_OPTS=-Duser.home=/tmp \\
-            --entrypoint gradle \\
-            "$GRADLE_IMAGE" \\
+          docker run --rm \
+            --network bridge \
+            --user "$(id -u):$(id -g)" \
+            --cap-drop ALL \
+            --security-opt no-new-privileges:true \
+            --pids-limit 512 \
+            --memory 6g \
+            --read-only \
+            --tmpfs /tmp:rw,nosuid,nodev,size=1g \
+            --mount "type=bind,src=$PWD,dst=/workspace" \
+            --mount "type=bind,src=$CLEAN_GRADLE_HOME,dst=/gradle-home" \
+            --workdir /workspace \
+            --env HOME=/tmp \
+            --env GRADLE_USER_HOME=/gradle-home \
+            --env GRADLE_OPTS=-Duser.home=/tmp \
+            --entrypoint gradle \
+            "$GRADLE_IMAGE" \
             --no-daemon --stacktrace build 2>&1 | tee -a "$GITHUB_WORKSPACE/perwork-context/build.log"
 
       - name: Require a non-empty compiled JAR
@@ -208,8 +208,8 @@ jobs:
         run: |
           set -euo pipefail
           TOKEN_URL="${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=perwork-builder"
-          OIDC_TOKEN="$(curl --fail --silent --show-error --max-time 15 \\
-            -H "Authorization: bearer ${ACTIONS_ID_TOKEN_REQUEST_TOKEN}" \\
+          OIDC_TOKEN="$(curl --fail --silent --show-error --max-time 15 \
+            -H "Authorization: bearer ${ACTIONS_ID_TOKEN_REQUEST_TOKEN}" \
             "$TOKEN_URL" | python -c "import json,sys; print(json.load(sys.stdin)['value'])")"
 
           python - <<'PY' > "$RUNNER_TEMP/perwork-result.json"
@@ -223,9 +223,9 @@ jobs:
           }))
           PY
 
-          curl --fail --silent --show-error --max-time 20 -X POST \\
-            -H "Authorization: Bearer $OIDC_TOKEN" \\
-            -H "Content-Type: application/json" \\
-            --data-binary @"$RUNNER_TEMP/perwork-result.json" \\
+          curl --fail --silent --show-error --max-time 20 -X POST \
+            -H "Authorization: Bearer $OIDC_TOKEN" \
+            -H "Content-Type: application/json" \
+            --data-binary @"$RUNNER_TEMP/perwork-result.json" \
             "$WORKER_URL/api/builder/internal/complete?job_id=$JOB_ID"
           unset OIDC_TOKEN
