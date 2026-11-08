@@ -8,6 +8,15 @@ on:
       - "examples/**"
       - ".github/workflows/verify-builder.yml"
       - ".github/workflows/build-generated-project.yml"
+      - "SUPPORTED_PROFILES.md"
+  pull_request:
+    branches: [main]
+    paths:
+      - "builder/**"
+      - "examples/**"
+      - ".github/workflows/verify-builder.yml"
+      - ".github/workflows/build-generated-project.yml"
+      - "SUPPORTED_PROFILES.md"
   workflow_dispatch:
 
 permissions:
@@ -22,13 +31,6 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: "17"
-      - uses: gradle/actions/setup-gradle@v4
-        with:
-          gradle-version: "8.1.1"
       - name: Validate workflow YAML and expressions
         run: |
           python -m pip install --quiet pyyaml
@@ -45,16 +47,69 @@ jobs:
               assert isinstance(parsed, dict), f"Invalid workflow YAML: {name}"
           build = Path(".github/workflows/build-generated-project.yml").read_text(encoding="utf-8")
           assert marker + " inputs.job_id }}" in build, "workflow_dispatch job_id expression is missing"
-          print("Workflow YAML and GitHub expression markers validated.")
+          assert "perwork-input-" not in build, "User source must not be uploaded as an intermediate public artifact"
+          assert "docker run" in build and "--entrypoint gradle" in build, "Gradle must run inside the isolated container"
+          assert "perwork-context/project/build/libs/*.jar" in build, "Final JAR artifact path is missing"
+          print("Workflow YAML, dispatch input, source privacy and container isolation validated.")
           PY
 
       - name: Validate generator
         run: |
           python -m py_compile builder/generate.py builder/safe_extract.py
           python builder/generate.py --source examples/main --output generated-project --minecraft 1.20.1 --loader forge --kind mod --mod-id examplemod --mod-name "PERWORK Example Mod" --mod-version 1.0.0
-      - name: Build example mod
+      - name: Reject control characters in mod names
+        run: |
+          python - <<'PY'
+          import subprocess
+          import sys
+          import tempfile
+          from pathlib import Path
+
+          with tempfile.TemporaryDirectory() as tmp:
+              result = subprocess.run(
+                  [
+                      sys.executable, "builder/generate.py",
+                      "--source", "examples/main",
+                      "--output", str(Path(tmp) / "generated"),
+                      "--minecraft", "1.20.1",
+                      "--loader", "forge",
+                      "--kind", "mod",
+                      "--mod-id", "examplemod",
+                      "--mod-name", "Bad\tName",
+                  ],
+                  text=True,
+                  capture_output=True,
+              )
+          assert result.returncode != 0, "Generator accepted a tab character in mod-name."
+          assert "control characters" in result.stderr, result.stderr
+          print("Generator correctly rejects control characters in mod-name.")
+          PY
+      - name: Build example mod in isolated Gradle/JDK 17 container
         working-directory: generated-project
-        run: gradle --no-daemon --stacktrace build
+        run: |
+          set -euo pipefail
+          image="gradle:8.1.1-jdk17-focal"
+          docker pull "$image"
+          cache="$RUNNER_TEMP/perwork-gradle-home"
+          mkdir -p "$cache"
+          docker run --rm \
+            --network bridge \
+            --user "$(id -u):$(id -g)" \
+            --cap-drop ALL \
+            --security-opt no-new-privileges:true \
+            --pids-limit 512 \
+            --memory 6g \
+            --read-only \
+            --tmpfs /tmp:rw,nosuid,nodev,size=1g \
+            --mount "type=bind,src=$PWD,dst=/workspace" \
+            --mount "type=bind,src=$cache,dst=/gradle-home" \
+            --workdir /workspace \
+            --env HOME=/tmp \
+            --env GRADLE_USER_HOME=/gradle-home \
+            --env GRADLE_OPTS=-Duser.home=/tmp \
+            --entrypoint gradle \
+            "$image" \
+            --no-daemon --stacktrace build
       - name: Upload verification JAR
         uses: actions/upload-artifact@v4
         with:
