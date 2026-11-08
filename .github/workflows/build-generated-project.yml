@@ -60,6 +60,17 @@ jobs:
             -H "Authorization: bearer ${ACTIONS_ID_TOKEN_REQUEST_TOKEN}" \
             "$TOKEN_URL" | python -c "import json,sys; print(json.load(sys.stdin)['value'])")"
 
+          report_phase() {
+            local phase="$1"
+            curl --fail --silent --show-error --max-time 10 -X POST \
+              -H "Authorization: Bearer $OIDC_TOKEN" \
+              -H "Content-Type: application/json" \
+              --data "{\"phase\":\"$phase\"}" \
+              "$WORKER_URL/api/builder/internal/progress?job_id=$JOB_ID" \
+              || echo "Could not report PERWORK build stage '$phase'; continuing."
+          }
+          report_phase "preparing"
+
           # Workers KV is eventually consistent across regions. Retry cold reads
           # briefly so a just-created job/source is available to the GitHub runner.
           fetch_with_retry() {
@@ -120,6 +131,7 @@ jobs:
           # archive or intermediate source artifact is uploaded to GitHub.
           rm -f "$RUNNER_TEMP/perwork-source.zip" "$RUNNER_TEMP/perwork-job.json"
           rm -rf "$RUNNER_TEMP/perwork-source"
+          report_phase "compiling"
           echo "Project prepared. Compilation will run in a credential-free container." >> perwork-context/build.log
 
       - name: Compile in an isolated Gradle/JDK 17 container
@@ -174,6 +186,26 @@ jobs:
           done
           echo "Gradle completed without producing a non-empty JAR." >&2
           exit 1
+
+      - name: Report packaging phase
+        if: steps.compile.outcome == 'success'
+        shell: bash
+        env:
+          JOB_ID: ${{{ inputs.job_id }}
+          WORKER_URL: https://perwork.okey-g00gle3000.workers.dev
+        run: |
+          set -euo pipefail
+          TOKEN_URL="${{ACTIONS_ID_TOKEN_REQUEST_URL}&audience=perwork-builder"
+          OIDC_TOKEN="$(curl --fail --silent --show-error --max-time 15 \
+            -H "Authorization: bearer ${{ACTIONS_ID_TOKEN_REQUEST_TOKEN}" \
+            "$TOKEN_URL" | python -c "import json,sys; print(json.load(sys.stdin)['value'])")"
+          curl --fail --silent --show-error --max-time 10 -X POST \
+            -H "Authorization: Bearer $OIDC_TOKEN" \
+            -H "Content-Type: application/json" \
+            --data '{"phase":"packaging"}' \
+            "$WORKER_URL/api/builder/internal/progress?job_id=$JOB_ID" \
+            || echo "Could not report PERWORK packaging phase; continuing."
+          unset OIDC_TOKEN
 
       - name: Upload JAR and build log
         id: upload
