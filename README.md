@@ -35,7 +35,7 @@ Set Worker secret `GITHUB_TOKEN` to a fine-grained token with access to both `Ke
 - `Metadata: read` on `Ketsuneban/perwork-builder`;
 - existing permissions for the `Ketsuneban/perwork` commit monitor and revert feature.
 
-Create a Cloudflare Turnstile widget for the site hostnames. Put its public site key in `BUILDER_TURNSTILE_SITE_KEY` in `src/app.js` and its secret in Worker secret `TURNSTILE_SECRET_KEY`. The Worker rejects new builds until Turnstile is verified.
+Create a Cloudflare Turnstile widget for the site hostnames. Put its public site key in the empty `TURNSTILE_SITE_KEY` constant in the Java Studio cloud-build section of `Ketsuneban/perwork/src/app.js`. Keep the corresponding secret only in Cloudflare Worker Secret `TURNSTILE_SECRET_KEY`. The Worker rejects new builds until Turnstile is verified.
 
 ## OIDC trust
 Internal Worker endpoints accept only a valid GitHub Actions OIDC token with issuer `https://token.actions.githubusercontent.com`, audience `perwork-builder`, repository `Ketsuneban/perwork-builder`, workflow `.github/workflows/build-generated-project.yml`, branch `refs/heads/main`, and event `workflow_dispatch`.
