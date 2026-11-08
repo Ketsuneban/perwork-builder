@@ -15,7 +15,7 @@ Only profiles marked `supported` in `builder/profiles.json` are enabled for comp
 
 | Minecraft | Loader | Type | Java | Status |
 |---|---|---|---:|---|
-| 1.20.1 | Forge | Mod | 17 | CI verification pending |
+| 1.20.1 | Forge | Mod | 17 | Verified — PR workflow run #11 passed Gradle build and uploaded the JAR on 2026-11-08 |
 
 Other combinations in the Java Studio selectors are not buildable until their template passes CI.
 
