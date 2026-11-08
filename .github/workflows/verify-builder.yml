@@ -75,7 +75,7 @@ jobs:
                       "--loader", "forge",
                       "--kind", "mod",
                       "--mod-id", "examplemod",
-                      "--mod-name", "Bad\\tName",
+                      "--mod-name", "Bad\tName",
                   ],
                   text=True,
                   capture_output=True,
