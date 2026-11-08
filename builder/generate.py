@@ -87,14 +87,14 @@ def synchronize_forge_mod_id(java_root, mod_id):
     pending_constants = {}
     updated_annotations = 0
 
-    subscriber_pattern = re.compile(r'@Mod\\.EventBusSubscriber\\s*\\((?P<arguments>[^)]*)\\)')
+    subscriber_pattern = re.compile(r'@Mod\.EventBusSubscriber\s*\((?P<arguments>[^)]*)\)')
     updated_subscribers = 0
 
     for path in java_files:
         def replace_subscriber(match):
             nonlocal updated_subscribers
             arguments = match.group("arguments")
-            modid_pattern = re.compile(r'(\\bmodid\\s*=\\s*)("[^"\\r\\n]*"|[^,]+)')
+            modid_pattern = re.compile(r'(\bmodid\s*=\s*)("[^"\r\n]*"|[^,]+)')
             if modid_pattern.search(arguments):
                 arguments = modid_pattern.sub(lambda found: found.group(1) + '"' + mod_id + '"', arguments, count=1)
             elif arguments.strip():
@@ -229,7 +229,7 @@ def main():
                 "pack_format": 15,
                 "description": f"{args.mod_name} resources"
             }
-        }, ensure_ascii=False, indent=2) + "\\n", encoding="utf-8")
+        }, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
         print("Added default pack.mcmeta (pack_format 15).")
     print(f"Generated Gradle project: {java_count} Java file(s), {resource_count} resource file(s).")
     print(f"Profile: Minecraft {profile['minecraft']} / {profile['loader']} / {profile['kind']}")
