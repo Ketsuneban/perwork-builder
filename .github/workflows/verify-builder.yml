@@ -7,6 +7,7 @@ on:
       - "builder/**"
       - "examples/**"
       - ".github/workflows/verify-builder.yml"
+      - ".github/workflows/build-generated-project.yml"
   workflow_dispatch:
 
 permissions:
@@ -28,6 +29,24 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: "8.1.1"
+      - name: Validate workflow YAML and expressions
+        run: |
+          python -m pip install --quiet pyyaml
+          python - <<'PY'
+          from pathlib import Path
+          import yaml
+          for name in ("build-generated-project.yml", "verify-builder.yml"):
+              path = Path(".github/workflows") / name
+              source = path.read_text(encoding="utf-8")
+              assert r"\${" not in source, f"Escaped expression found in {name}"
+              parsed = yaml.safe_load(source)
+              assert isinstance(parsed, dict), f"Invalid workflow YAML: {name}"
+          build = Path(".github/workflows/build-generated-project.yml").read_text(encoding="utf-8")
+          assert "${{ inputs.job_id }}" in build, "workflow_dispatch job_id expression is missing"
+          assert "${{ ACTIONS_ID_TOKEN_REQUEST_URL }}" not in build, "Unexpected literal OIDC environment expression"
+          print("Workflow YAML and GitHub expression markers validated.")
+          PY
+
       - name: Validate generator
         run: |
           python -m py_compile builder/generate.py builder/safe_extract.py
