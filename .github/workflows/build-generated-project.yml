@@ -117,6 +117,20 @@ jobs:
                   env.write(f"PERWORK_{key.upper()}={value}\n")
           PY
 
+      - name: Generate Minecraft project from uploaded sources
+        shell: bash
+        env:
+          JOB_ID: ${{ inputs.job_id }}
+          WORKER_URL: https://perwork.okey-g00gle3000.workers.dev
+        run: |
+          set -euo pipefail
+          : "${PERWORK_MINECRAFT:?Build configuration did not propagate from the previous step.}"
+          : "${PERWORK_LOADER:?Build loader did not propagate from the previous step.}"
+          : "${PERWORK_KIND:?Build kind did not propagate from the previous step.}"
+          : "${PERWORK_MOD_ID:?Mod ID did not propagate from the previous step.}"
+          : "${PERWORK_MOD_NAME:?Mod name did not propagate from the previous step.}"
+          : "${PERWORK_MOD_VERSION:?Mod version did not propagate from the previous step.}"
+
           python builder/generate.py \
             --source "$RUNNER_TEMP/perwork-source/main" \
             --output perwork-context/project \
@@ -125,13 +139,24 @@ jobs:
             --kind "$PERWORK_KIND" \
             --mod-id "$PERWORK_MOD_ID" \
             --mod-name "$PERWORK_MOD_NAME" \
-            --mod-version "$PERWORK_MOD_VERSION"
+            --mod-version "$PERWORK_MOD_VERSION" 2>&1 | tee -a "$GITHUB_WORKSPACE/perwork-context/build.log"
 
           # Keep only the generated project in the build workspace. No source
           # archive or intermediate source artifact is uploaded to GitHub.
           rm -f "$RUNNER_TEMP/perwork-source.zip" "$RUNNER_TEMP/perwork-job.json"
           rm -rf "$RUNNER_TEMP/perwork-source"
-          report_phase "compiling"
+
+          TOKEN_URL="${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=perwork-builder"
+          OIDC_TOKEN="$(curl --fail --silent --show-error --max-time 15 \
+            -H "Authorization: bearer ${ACTIONS_ID_TOKEN_REQUEST_TOKEN}" \
+            "$TOKEN_URL" | python -c "import json,sys; print(json.load(sys.stdin)['value'])")"
+          curl --fail --silent --show-error --max-time 10 -X POST \
+            -H "Authorization: Bearer $OIDC_TOKEN" \
+            -H "Content-Type: application/json" \
+            --data '{"phase":"compiling"}' \
+            "$WORKER_URL/api/builder/internal/progress?job_id=$JOB_ID" \
+            || echo "Could not report PERWORK compile stage; continuing."
+          unset OIDC_TOKEN
           echo "Project prepared. Compilation will run in a credential-free container." >> perwork-context/build.log
 
       - name: Compile in an isolated Gradle/JDK 17 container
