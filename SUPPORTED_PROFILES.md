@@ -1,20 +1,11 @@
 # Supported profiles
 
-Support is explicit: a profile is available only when its template and dependency versions have been verified by CI.
+A combination is available for cloud compilation only after its generator template passes a clean GitHub Actions build.
 
-| Minecraft | Loader | Project kind | Status |
-|---|---|---|---|
-| 1.20.1 | Forge | mod | Starter template; CI verification required |
+| Minecraft | Loader | Project kind | Java | Status |
+|---|---|---|---:|---|
+| 1.20.1 | Forge | Mod | 17 | CI verification pending |
 
-The UI should not offer unverified combinations. A version range in the Java Studio selector is not a guarantee that every loader supports every game version.
+The Java Studio selectors contain additional roadmap combinations. They must not be compiled until a matching profile is verified and marked \`supported\` in \`builder/profiles.json\`.
 
-## Profile definition
-
-Profiles are stored in `builder/profiles.json`. Each profile defines:
-- Minecraft version
-- loader
-- project kind
-- Java toolchain
-- Gradle and loader plugin coordinates
-
-Add a profile only after a clean CI build has verified it.
+Each profile must declare the Minecraft version, loader, project kind, Java toolchain, Gradle version and loader dependency coordinates. Never mark an unverified profile as supported.
