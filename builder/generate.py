@@ -66,6 +66,19 @@ def copy_tree_files(source, destination):
         copied += 1
     return copied
 
+def copy_java_files(source, destination):
+    copied = 0
+    for file in source.rglob("*"):
+        if file.is_symlink():
+            raise SystemExit(f"Symbolic links are not allowed: {file.relative_to(source)}")
+        if not file.is_file() or file.suffix.lower() != ".java":
+            continue
+        target = destination / file.relative_to(source)
+        target.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(file, target)
+        copied += 1
+    return copied
+
 def toml_string(value):
     clean = value.replace("\\", "\\\\").replace('"', '\\"').replace("\r", " ").replace("\n", " ")
     return '"' + clean + '"'
@@ -77,7 +90,7 @@ def main():
     source, output = args.source.resolve(), args.output.resolve()
     java_root = find_java_root(source)
     output.mkdir(parents=True, exist_ok=True)
-    java_count = copy_tree_files(java_root, output / "src" / "main" / "java")
+    java_count = copy_java_files(java_root, output / "src" / "main" / "java")
     if not java_count:
         raise SystemExit("No .java files found in uploaded main/ directory")
     resources = args.resources.resolve() if args.resources else source / "resources"
