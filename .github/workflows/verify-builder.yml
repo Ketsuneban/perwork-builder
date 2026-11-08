@@ -39,6 +39,6 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: verified-minecraft-1.20.1-forge-mod
-          path: build/libs/*.jar
+          path: generated-project/build/libs/*.jar
           if-no-files-found: error
           retention-days: 3
