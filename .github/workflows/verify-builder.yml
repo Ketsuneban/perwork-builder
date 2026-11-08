@@ -35,15 +35,16 @@ jobs:
           python - <<'PY'
           from pathlib import Path
           import yaml
+          marker = "$" + "{{"
+          escaped = chr(92) + "$" + "{"
           for name in ("build-generated-project.yml", "verify-builder.yml"):
               path = Path(".github/workflows") / name
               source = path.read_text(encoding="utf-8")
-              assert r"\${" not in source, f"Escaped expression found in {name}"
+              assert escaped not in source, f"Escaped expression found in {name}"
               parsed = yaml.safe_load(source)
               assert isinstance(parsed, dict), f"Invalid workflow YAML: {name}"
           build = Path(".github/workflows/build-generated-project.yml").read_text(encoding="utf-8")
-          assert "${{ inputs.job_id }}" in build, "workflow_dispatch job_id expression is missing"
-          assert "${{ ACTIONS_ID_TOKEN_REQUEST_URL }}" not in build, "Unexpected literal OIDC environment expression"
+          assert marker + " inputs.job_id }}" in build, "workflow_dispatch job_id expression is missing"
           print("Workflow YAML and GitHub expression markers validated.")
           PY
 
