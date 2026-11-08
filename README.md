@@ -28,7 +28,7 @@ The ZIP must contain one `main/` folder. Java files may be in `main/java/**` or 
 - Path traversal, symlinks and encrypted ZIP entries are rejected.
 
 ## Cloudflare configuration
-Create a Workers KV namespace named `PERWORK_BUILDER` and bind it to the Worker as `BUILDER_KV` (see `worker/wrangler.toml`). Workers KV is included in Cloudflare's Free plan. The current 20 MiB upload limit is below KV's 25 MiB per-value limit. Configure the namespace before deploying the Worker.
+The Workers KV namespace has already been created: `PERWORK_BUILDER` (ID `3d0d1f2d8b1d400aba7857e25afa1334`). The Worker binds it as `BUILDER_KV` in `worker/wrangler.toml`; do not create another namespace or replace this ID. Workers KV is available on Cloudflare's Free plan, and the current 20 MiB upload limit is below its 25 MiB per-value limit. Source ZIPs expire after two hours; job metadata expires after 24 hours.
 
 Set Worker secret `GITHUB_TOKEN` to a fine-grained token with access to both `Ketsuneban/perwork` (existing Worker features) and `Ketsuneban/perwork-builder`, with:
 - `Actions: read and write` on `Ketsuneban/perwork-builder` (workflow dispatch and artifact download);
