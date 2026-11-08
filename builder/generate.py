@@ -82,7 +82,16 @@ def main():
         raise SystemExit("No .java files found in uploaded main/ directory")
     resources = args.resources.resolve() if args.resources else source / "resources"
     resource_count = copy_tree_files(resources, output / "src" / "main" / "resources")
-    (output / "settings.gradle").write_text("rootProject.name = '" + args.mod_id + "'\n", encoding="utf-8")
+    (output / "settings.gradle").write_text(
+        "pluginManagement {\\n"
+        "    repositories {\\n"
+        "        gradlePluginPortal()\\n"
+        "        maven { url = 'https://maven.minecraftforge.net/' }\\n"
+        "    }\\n"
+        "}\\n"
+        "rootProject.name = '" + args.mod_id + "'\\n",
+        encoding="utf-8",
+    )
     (output / "gradle.properties").write_text("org.gradle.jvmargs=-Xmx3G\norg.gradle.daemon=false\norg.gradle.parallel=false\n", encoding="utf-8")
     (output / "build.gradle").write_text(build_gradle(profile, args), encoding="utf-8")
     meta_inf = output / "src" / "main" / "resources" / "META-INF"
