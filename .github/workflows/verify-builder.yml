@@ -1,0 +1,44 @@
+name: Verify PERWORK Builder profiles
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "builder/**"
+      - "examples/**"
+      - ".github/workflows/verify-builder.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  forge-1-20-1:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.1.1"
+      - name: Validate generator
+        run: |
+          python -m py_compile builder/generate.py builder/safe_extract.py
+          python builder/generate.py --source examples/main --output generated-project --minecraft 1.20.1 --loader forge --kind mod --mod-id examplemod --mod-name "PERWORK Example Mod" --mod-version 1.0.0
+      - name: Build example mod
+        working-directory: generated-project
+        run: gradle --no-daemon --stacktrace build
+      - name: Upload verification JAR
+        uses: actions/upload-artifact@v4
+        with:
+          name: verified-minecraft-1.20.1-forge-mod
+          path: build/libs/*.jar
+          if-no-files-found: error
+          retention-days: 3
