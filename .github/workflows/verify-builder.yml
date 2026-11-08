@@ -50,7 +50,14 @@ jobs:
           assert "perwork-input-" not in build, "User source must not be uploaded as an intermediate public artifact"
           assert "docker run" in build and "--entrypoint gradle" in build, "Gradle must run inside the isolated container"
           assert "perwork-context/project/build/libs/*.jar" in build, "Final JAR artifact path is missing"
-          print("Workflow YAML, dispatch input, source privacy and container isolation validated.")
+          steps = yaml.safe_load(build)["jobs"]["build"]["steps"]
+          fetch_step = next(step for step in steps if step.get("name") == "Fetch source and configuration using GitHub OIDC")
+          generate_step = next(step for step in steps if step.get("name") == "Generate Minecraft project from uploaded sources")
+          assert "GITHUB_ENV" in fetch_step.get("run", ""), "Build configuration must be exported for subsequent steps"
+          assert "PERWORK_MINECRAFT" not in fetch_step.get("run", ""), "Do not consume GITHUB_ENV variables in the same step that writes them"
+          assert "PERWORK_MINECRAFT" in generate_step.get("run", ""), "Separate generation step must consume exported build configuration"
+          assert "tee -a" in generate_step.get("run", ""), "Project generation diagnostics must be persisted to build.log"
+          print("Workflow YAML, dispatch input, source privacy, environment propagation and container isolation validated.")
           PY
 
       - name: Validate generator
