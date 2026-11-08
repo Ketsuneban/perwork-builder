@@ -4,7 +4,7 @@ A combination is available for cloud compilation only after its generator templa
 
 | Minecraft | Loader | Project kind | Java | Status |
 |---|---|---|---:|---|
-| 1.20.1 | Forge | Mod | 17 | CI verification pending |
+| 1.20.1 | Forge | Mod | 17 | Verified — generated project, Gradle build and artifact upload passed on 2026-11-08 |
 
 The Java Studio selectors contain additional roadmap combinations. They must not be compiled until a matching profile is verified and marked \`supported\` in \`builder/profiles.json\`.
 
