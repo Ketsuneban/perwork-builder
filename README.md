@@ -16,7 +16,7 @@ Only profiles marked `supported` in `builder/profiles.json` are enabled for comp
 
 | Minecraft | Loader | Type | Java | Status |
 |---|---|---|---:|---|
-| 1.20.1 | Forge | Mod | 17 | Verified — isolated Java 17 container build and JAR upload passed in PR workflow run #18 on 2026-11-08 |
+| 1.20.1 | Forge | Mod | 17 | Verified — isolated Java 17 container build and JAR upload passed in PR workflow run #22 on 2026-11-08 |
 
 Other combinations in the Java Studio selectors are not buildable until their template passes CI.
 
