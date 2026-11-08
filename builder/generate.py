@@ -101,7 +101,7 @@ def synchronize_forge_mod_id(java_root, mod_id):
             if len(first) >= 2 and first[0] == '"' and first[-1] == '"':
                 updated_annotations += 1
                 new_first = prefix + '"' + mod_id + '"'
-                return "@Mod(" + new_first + (separator + rest if separator else ")")
+                return "@Mod(" + new_first + (separator + rest if separator else "") + ")"
 
             if not re.fullmatch(r'[A-Za-z_$][\w$]*(?:\s*\.\s*[A-Za-z_$][\w$]*)*', first):
                 raise SystemExit(
