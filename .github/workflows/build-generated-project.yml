@@ -14,12 +14,15 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  prepare:
+  build:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 40
     permissions:
       contents: read
       id-token: write
+    outputs:
+      compile_outcome: ${{ steps.compile.outcome }}
+      artifact_id: ${{ steps.upload.outputs['artifact-id'] }}
     steps:
       - name: Check out builder tools
         uses: actions/checkout@v4
@@ -31,19 +34,30 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Fetch source using GitHub OIDC
+      - name: Initialize build log
+        shell: bash
+        env:
+          JOB_ID: ${{ inputs.job_id }}
+        run: |
+          set -euo pipefail
+          mkdir -p perwork-context/project
+          printf 'Preparing PERWORK build %s\\n' "$JOB_ID" > perwork-context/build.log
+
+      - name: Fetch source and configuration using GitHub OIDC
         shell: bash
         env:
           JOB_ID: ${{ inputs.job_id }}
           WORKER_URL: https://perwork.okey-g00gle3000.workers.dev
         run: |
           set -euo pipefail
-          mkdir -p perwork-context/builder
-          printf 'Preparing PERWORK build %s\n' "$JOB_ID" > perwork-context/build.log
+          if [[ ! "$JOB_ID" =~ ^[0-9a-f-]{36}$ ]]; then
+            echo "Invalid PERWORK job ID." >&2
+            exit 1
+          fi
 
           TOKEN_URL="${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=perwork-builder"
-          OIDC_TOKEN="$(curl --fail --silent --show-error \
-            -H "Authorization: bearer ${ACTIONS_ID_TOKEN_REQUEST_TOKEN}" \
+          OIDC_TOKEN="$(curl --fail --silent --show-error --max-time 15 \\
+            -H "Authorization: bearer ${ACTIONS_ID_TOKEN_REQUEST_TOKEN}" \\
             "$TOKEN_URL" | python -c "import json,sys; print(json.load(sys.stdin)['value'])")"
 
           # Workers KV is eventually consistent across regions. Retry cold reads
@@ -53,8 +67,8 @@ jobs:
             local destination="$2"
             local label="$3"
             for attempt in $(seq 1 12); do
-              if curl --fail --silent --show-error --location \
-                -H "Authorization: Bearer $OIDC_TOKEN" \
+              if curl --fail --silent --show-error --location --max-time 30 \\
+                -H "Authorization: Bearer $OIDC_TOKEN" \\
                 "$url" -o "$destination"; then
                 return 0
               fi
@@ -68,17 +82,17 @@ jobs:
             return 1
           }
 
-          fetch_with_retry \
-            "$WORKER_URL/api/builder/internal/config?job_id=$JOB_ID" \
+          fetch_with_retry \\
+            "$WORKER_URL/api/builder/internal/config?job_id=$JOB_ID" \\
             "$RUNNER_TEMP/perwork-job.json" "build configuration"
 
-          fetch_with_retry \
-            "$WORKER_URL/api/builder/internal/source?job_id=$JOB_ID" \
+          fetch_with_retry \\
+            "$WORKER_URL/api/builder/internal/source?job_id=$JOB_ID" \\
             "$RUNNER_TEMP/perwork-source.zip" "source ZIP"
           unset OIDC_TOKEN
 
-          python builder/safe_extract.py \
-            --archive "$RUNNER_TEMP/perwork-source.zip" \
+          python builder/safe_extract.py \\
+            --archive "$RUNNER_TEMP/perwork-source.zip" \\
             --destination "$RUNNER_TEMP/perwork-source"
 
           python - <<'PY'
@@ -86,78 +100,63 @@ jobs:
           config = json.load(open(os.path.join(os.environ["RUNNER_TEMP"], "perwork-job.json"), encoding="utf-8"))
           for key in ("minecraft", "loader", "kind", "mod_id", "mod_name", "mod_version"):
               value = str(config.get(key, ""))
-              if "\n" in value or "\r" in value:
+              if "\\n" in value or "\\r" in value:
                   raise SystemExit(f"Invalid build setting: {key}")
               with open(os.environ["GITHUB_ENV"], "a", encoding="utf-8") as env:
-                  env.write(f"PERWORK_{key.upper()}={value}\n")
+                  env.write(f"PERWORK_{key.upper()}={value}\\n")
           PY
 
-          python builder/generate.py \
-            --source "$RUNNER_TEMP/perwork-source/main" \
-            --output perwork-context/project \
-            --minecraft "$PERWORK_MINECRAFT" \
-            --loader "$PERWORK_LOADER" \
-            --kind "$PERWORK_KIND" \
-            --mod-id "$PERWORK_MOD_ID" \
-            --mod-name "$PERWORK_MOD_NAME" \
+          python builder/generate.py \\
+            --source "$RUNNER_TEMP/perwork-source/main" \\
+            --output perwork-context/project \\
+            --minecraft "$PERWORK_MINECRAFT" \\
+            --loader "$PERWORK_LOADER" \\
+            --kind "$PERWORK_KIND" \\
+            --mod-id "$PERWORK_MOD_ID" \\
+            --mod-name "$PERWORK_MOD_NAME" \\
             --mod-version "$PERWORK_MOD_VERSION"
 
-          cp builder/generate.py builder/safe_extract.py builder/profiles.json perwork-context/builder/
-          echo "Generated project prepared. Untrusted Gradle tasks run in a separate token-free job." >> perwork-context/build.log
+          # Keep only the generated project in the build workspace. No source
+          # archive or intermediate source artifact is uploaded to GitHub.
+          rm -f "$RUNNER_TEMP/perwork-source.zip" "$RUNNER_TEMP/perwork-job.json"
+          rm -rf "$RUNNER_TEMP/perwork-source"
+          echo "Project prepared. Compilation will run in a credential-free container." >> perwork-context/build.log
 
-      - name: Upload prepared project
-        uses: actions/upload-artifact@v4
-        with:
-          name: perwork-input-${{ inputs.job_id }}
-          path: perwork-context/
-          if-no-files-found: error
-          retention-days: 1
-
-  build:
-    needs: prepare
-    if: needs.prepare.result == 'success'
-    runs-on: ubuntu-latest
-    timeout-minutes: 30
-    permissions: {}
-    outputs:
-      compile_outcome: ${{ steps.compile.outcome }}
-      artifact_id: ${{ steps.upload.outputs['artifact-id'] }}
-    steps:
-      - name: Download prepared project
-        uses: actions/download-artifact@v4
-        with:
-          name: perwork-input-${{ inputs.job_id }}
-          path: perwork-context
-
-      - name: Set up Java
-        uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: "17"
-
-      - name: Set up Gradle
-        uses: gradle/actions/setup-gradle@v4
-        with:
-          gradle-version: "8.1.1"
-
-      - name: Compile project
+      - name: Compile in an isolated Gradle/JDK 17 container
         id: compile
         continue-on-error: true
         shell: bash
         working-directory: perwork-context/project
+        env:
+          GRADLE_IMAGE: gradle:8.1.1-jdk17-focal
         run: |
-          set -o pipefail
-          # Do not pass the runner's Actions/GitHub environment or any preloaded
-          # Gradle init scripts to the source-compilation process.
+          set -euo pipefail
+          docker pull "$GRADLE_IMAGE"
           CLEAN_GRADLE_HOME="$RUNNER_TEMP/perwork-gradle-home"
           mkdir -p "$CLEAN_GRADLE_HOME"
-          env -i \
-            HOME="$CLEAN_GRADLE_HOME" \
-            GRADLE_USER_HOME="$CLEAN_GRADLE_HOME/.gradle" \
-            JAVA_HOME="$JAVA_HOME" \
-            PATH="$PATH" \
-            CI=true \
-            gradle --no-daemon --stacktrace build 2>&1 | tee -a "$GITHUB_WORKSPACE/perwork-context/build.log"
+          chmod 700 "$CLEAN_GRADLE_HOME"
+
+          # The container sees only the generated project and an empty Gradle
+          # cache. No Git checkout, OIDC request token, GITHUB_TOKEN, Actions
+          # runtime token, Worker secret or runner filesystem is mounted.
+          docker run --rm \\
+            --network bridge \\
+            --user "$(id -u):$(id -g)" \\
+            --cap-drop ALL \\
+            --security-opt no-new-privileges:true \\
+            --pids-limit 512 \\
+            --memory 6g \\
+            --read-only \\
+            --tmpfs /tmp:rw,nosuid,nodev,size=1g \\
+            --mount "type=bind,src=$PWD,dst=/workspace" \\
+            --mount "type=bind,src=$CLEAN_GRADLE_HOME,dst=/gradle-home" \\
+            --workdir /workspace \\
+            --env HOME=/tmp \\
+            --env GRADLE_USER_HOME=/gradle-home \\
+            --env GRADLE_OPTS=-Duser.home=/tmp \\
+            --entrypoint gradle \\
+            "$GRADLE_IMAGE" \\
+            --no-daemon --stacktrace build 2>&1 | tee -a "$GITHUB_WORKSPACE/perwork-context/build.log"
 
       - name: Require a non-empty compiled JAR
         if: steps.compile.outcome == 'success'
@@ -189,7 +188,7 @@ jobs:
           retention-days: 1
 
   report:
-    needs: [prepare, build]
+    needs: [build]
     if: always()
     runs-on: ubuntu-latest
     timeout-minutes: 5
@@ -201,17 +200,16 @@ jobs:
         env:
           JOB_ID: ${{ inputs.job_id }}
           WORKER_URL: https://perwork.okey-g00gle3000.workers.dev
-          PREPARE_RESULT: ${{ needs.prepare.result }}
           BUILD_RESULT: ${{ needs.build.result }}
           COMPILE_OUTCOME: ${{ needs.build.outputs.compile_outcome }}
           ARTIFACT_ID: ${{ needs.build.outputs.artifact_id }}
-          RESULT: ${{ (needs.prepare.result == 'success' && needs.build.result == 'success' && needs.build.outputs.compile_outcome == 'success' && needs.build.outputs.artifact_id != '') && 'success' || 'failure' }}
-          MESSAGE: ${{ needs.prepare.result != 'success' && 'Project preparation failed. Check the preparation logs.' || (needs.build.result == 'success' && needs.build.outputs.compile_outcome == 'success' && 'Minecraft project compiled and a non-empty JAR was verified.' || 'Build failed or produced no JAR. Download the diagnostic artifact for build.log.') }}
+          RESULT: ${{ (needs.build.result == 'success' && needs.build.outputs.compile_outcome == 'success' && needs.build.outputs.artifact_id != '') && 'success' || 'failure' }}
+          MESSAGE: ${{ (needs.build.result == 'success' && needs.build.outputs.compile_outcome == 'success' && needs.build.outputs.artifact_id != '') && 'Minecraft project compiled in an isolated container and a non-empty JAR was verified.' || 'Build failed or produced no JAR. Download the diagnostic artifact for build.log.' }}
         run: |
           set -euo pipefail
           TOKEN_URL="${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=perwork-builder"
-          OIDC_TOKEN="$(curl --fail --silent --show-error \
-            -H "Authorization: bearer ${ACTIONS_ID_TOKEN_REQUEST_TOKEN}" \
+          OIDC_TOKEN="$(curl --fail --silent --show-error --max-time 15 \\
+            -H "Authorization: bearer ${ACTIONS_ID_TOKEN_REQUEST_TOKEN}" \\
             "$TOKEN_URL" | python -c "import json,sys; print(json.load(sys.stdin)['value'])")"
 
           python - <<'PY' > "$RUNNER_TEMP/perwork-result.json"
@@ -225,9 +223,9 @@ jobs:
           }))
           PY
 
-          curl --fail --silent --show-error -X POST \
-            -H "Authorization: Bearer $OIDC_TOKEN" \
-            -H "Content-Type: application/json" \
-            --data-binary @"$RUNNER_TEMP/perwork-result.json" \
+          curl --fail --silent --show-error --max-time 20 -X POST \\
+            -H "Authorization: Bearer $OIDC_TOKEN" \\
+            -H "Content-Type: application/json" \\
+            --data-binary @"$RUNNER_TEMP/perwork-result.json" \\
             "$WORKER_URL/api/builder/internal/complete?job_id=$JOB_ID"
           unset OIDC_TOKEN
