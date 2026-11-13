@@ -1,4 +1,4 @@
-package dev.ketsuneban.studioexample;
+package dev.ketsuneban.perfectify;
 
 import java.util.HashMap;
 import java.util.HashSet;
@@ -12,11 +12,6 @@ import net.minecraft.nbt.Tag;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.saveddata.SavedData;
 
-/**
- * Per-dimension persistent contents for vanilla cauldrons.
- * Bedrock potions have 6 internal units (1 bottle = 2 units), while Java's
- * liquid surface has only 3 render heights. This maps ceil(units / 2) to it.
- */
 public final class CauldronStorage extends SavedData {
     public record Contents(String mode, int color, String potion, String item, int units) {
         public static Contents colored(int color) {
@@ -33,7 +28,7 @@ public final class CauldronStorage extends SavedData {
         new Factory<>(CauldronStorage::new, CauldronStorage::read);
 
     public static CauldronStorage of(ServerLevel level) {
-        return level.getDataStorage().computeIfAbsent(FACTORY, "studioexample_cauldrons");
+        return level.getDataStorage().computeIfAbsent(FACTORY, "perfectify_cauldrons");
     }
     public Contents get(BlockPos pos) {
         return contents.get(pos.asLong());

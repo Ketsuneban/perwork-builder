@@ -1,4 +1,4 @@
-package dev.ketsuneban.studioexample;
+package dev.ketsuneban.perfectify;
 
 import java.util.Map;
 import java.util.WeakHashMap;
@@ -13,11 +13,7 @@ import net.neoforged.neoforge.event.entity.EntityJoinLevelEvent;
 import net.neoforged.neoforge.event.entity.player.PlayerInteractEvent;
 import net.neoforged.neoforge.event.tick.ServerTickEvent;
 
-/**
- * Bedrock-inspired armor stands: visible arms, usable offhand and rising-edge poses.
- * Pose changes are bounded to loaded stands near online players every 10 ticks.
- */
-@EventBusSubscriber(modid = StudioExample.MOD_ID)
+@EventBusSubscriber(modid = Perfectify.MOD_ID)
 public final class ArmorStandFeatures {
     private static final Map<ArmorStand, Boolean> WAS_POWERED = new WeakHashMap<>();
     private static int poseTick;
@@ -67,7 +63,7 @@ public final class ArmorStandFeatures {
 
     private static void changePose(ArmorStand stand) {
         int p = stand.getRandom().nextInt(8);
-        // Every redstone pulse chooses a complete mirrored or asymmetrical preset.
+
         float head = switch (p) { case 1, 5 -> -14F; case 3, 7 -> 14F; default -> 0F; };
         stand.setHeadPose(new Rotations(head, p % 2 == 0 ? 0 : 15, 0));
         stand.setBodyPose(new Rotations(0, 0, p % 3 == 0 ? 6 : 0));

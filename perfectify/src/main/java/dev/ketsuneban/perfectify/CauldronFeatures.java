@@ -1,4 +1,4 @@
-package dev.ketsuneban.studioexample;
+package dev.ketsuneban.perfectify;
 
 import java.util.List;
 import net.minecraft.core.BlockPos;
@@ -28,11 +28,7 @@ import net.neoforged.neoforge.event.entity.player.PlayerInteractEvent;
 import net.neoforged.neoforge.event.level.BlockEvent;
 import net.neoforged.neoforge.event.tick.ServerTickEvent;
 
-/**
- * Bedrock-style potion storage, tipped arrows and dye water in vanilla cauldrons.
- * Bedrock's six-unit potion accounting is preserved in SavedData.
- */
-@EventBusSubscriber(modid = StudioExample.MOD_ID)
+@EventBusSubscriber(modid = Perfectify.MOD_ID)
 public final class CauldronFeatures {
     private static int ticks;
     private CauldronFeatures() {}
@@ -95,7 +91,7 @@ public final class CauldronFeatures {
         var item = held.getItem();
         boolean addingPotion = held.is(Items.POTION) || held.is(Items.SPLASH_POTION) ||
             held.is(Items.LINGERING_POTION);
-        // Vanilla already handles plain water potion. Other potions are our extension.
+
         var incoming = held.get(DataComponents.POTION_CONTENTS);
         boolean actualPotion = addingPotion && incoming != null &&
             !incoming.is(Potions.WATER);
@@ -117,7 +113,7 @@ public final class CauldronFeatures {
                 return;
             }
             if (old == null && state.is(Blocks.WATER_CAULDRON)) {
-                // Different liquid types cannot be mixed: potion + water clears it.
+
                 update(sl, pos, null);
                 sl.levelEvent(2002, pos, incoming.getColor());
                 take(e.getEntity(), held, 1);
@@ -164,7 +160,6 @@ public final class CauldronFeatures {
             return;
         }
 
-        // Dye + water: Java uses 1-3 levels. One dye mixes RGB channel-wise.
         if (state.is(Blocks.WATER_CAULDRON) && (stored == null || !stored.isPotion())
                 && item instanceof DyeItem dye) {
             interactDone(e);
@@ -197,7 +192,6 @@ public final class CauldronFeatures {
             return;
         }
 
-        // Other liquid containers clear an existing potion; normal vanilla water stays vanilla.
         if (stored != null && stored.isPotion() && (held.is(Items.WATER_BUCKET) ||
                 held.is(Items.LAVA_BUCKET) || (addingPotion && incoming != null && incoming.is(Potions.WATER)))) {
             interactDone(e);
@@ -232,7 +226,7 @@ public final class CauldronFeatures {
                             fx.getEffect(), duration, fx.getAmplifier()));
                     }
                 }
-                // Lazy witch-hut contents initialization: runs only for existing loaded huts.
+
                 if (ticks % 120 == 0) initializeNearbyHut(level, player.blockPosition(), data);
             }
         }
@@ -246,7 +240,7 @@ public final class CauldronFeatures {
                 if (!level.hasChunkAt(pos) ||
                     !level.getBlockState(pos).is(Blocks.CAULDRON) || data.hutSeen(pos))
                     continue;
-                // Witch hut fingerprint: cauldron, crafting table and potted red mushroom.
+
                 boolean crafting = false, mushroom = false;
                 for (int x = -3; x <= 3; x++) for (int z = -3; z <= 3; z++) {
                     for (int y = -1; y <= 2; y++) {
@@ -259,8 +253,7 @@ public final class CauldronFeatures {
                 }
                 if (!crafting || !mushroom) continue;
                 data.markHut(pos);
-                // Original Bedrock loot weights: healing 25, poison 25, swiftness 15,
-                // slowness 10, weakness 10, water breathing 10, fire resistance 5.
+
                 int roll = level.random.nextInt(100);
                 Holder<Potion> selected = roll < 25 ? Potions.HEALING
                     : roll < 50 ? Potions.POISON : roll < 65 ? Potions.SWIFTNESS

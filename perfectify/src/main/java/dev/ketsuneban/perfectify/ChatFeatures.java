@@ -1,4 +1,4 @@
-package dev.ketsuneban.studioexample;
+package dev.ketsuneban.perfectify;
 
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -13,12 +13,7 @@ import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.event.ServerChatEvent;
 import net.neoforged.neoforge.event.entity.player.PlayerEvent;
 
-/**
- * Legacy & formatting (&0...&f, &k, &l, &m, &n, &o, &r).
- * Online player names inside chat messages are highlighted in aqua (&b).
- * Signed chat behavior is preserved by using ServerChatEvent.setMessage.
- */
-@EventBusSubscriber(modid = StudioExample.MOD_ID)
+@EventBusSubscriber(modid = Perfectify.MOD_ID)
 public final class ChatFeatures {
     private ChatFeatures() {}
 
@@ -34,7 +29,7 @@ public final class ChatFeatures {
 
     @SubscribeEvent
     public static void tabList(PlayerEvent.TabListNameFormat event) {
-        // The vanilla tab renderer draws a skin icon; this only colors the label.
+
         event.setDisplayName(Component.literal(event.getEntity().getGameProfile().getName())
             .withStyle(ChatFormatting.AQUA));
     }

@@ -1,4 +1,4 @@
-package dev.ketsuneban.studioexample;
+package dev.ketsuneban.perfectify;
 
 import java.util.List;
 import net.minecraft.server.level.ServerLevel;
@@ -13,11 +13,7 @@ import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.event.tick.ServerTickEvent;
 
-/**
- * Small tactical adjustments, not expensive per-mob AI goal rewrites.
- * Only 6 nearby monsters per player are considered every 40 server ticks.
- */
-@EventBusSubscriber(modid = StudioExample.MOD_ID)
+@EventBusSubscriber(modid = Perfectify.MOD_ID)
 public final class SmartMobsAndGolems {
     private static int ticks;
 
@@ -56,14 +52,14 @@ public final class SmartMobsAndGolems {
                                 monster.getZ() + strafeZ * 3 + dz / len * retreat,
                                 1.15);
                         } else if (monster instanceof Zombie) {
-                            // Angle of approach changes, preventing a perfectly straight rush.
+
                             if (dist2 > 16) monster.getNavigation().moveTo(
                                 target.getX() + strafeX * 2.2,
                                 target.getY(),
                                 target.getZ() + strafeZ * 2.2,
                                 1.1);
                         } else if (monster instanceof Creeper) {
-                            // Do not interfere with actual fuse logic at close range.
+
                             if (dist2 > 36) monster.getNavigation().moveTo(
                                 target.getX() + strafeX * 1.7,
                                 target.getY(),
