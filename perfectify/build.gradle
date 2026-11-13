@@ -11,6 +11,7 @@ neoForge {
   runs {
     client { client() }
     server { server() }
+    gameTestServer { type = 'gameTestServer' }
   }
   mods {
     "${mod_id}" { sourceSet(sourceSets.main) }

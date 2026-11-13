@@ -27,6 +27,19 @@ jobs:
         run: gradle --no-daemon --project-dir perfectify clean build --stacktrace
       - name: Verify Jar
         run: jar tf perfectify/build/libs/perfectify-*.jar | grep 'dev/ketsuneban/perfectify/Perfectify.class'
+      - name: Test dedicated Minecraft server startup
+        shell: bash
+        run: |
+          set -o pipefail
+          timeout 600s gradle --no-daemon --project-dir perfectify runGameTestServer --stacktrace 2>&1 | tee perfectify-server-smoke.log
+      - name: Upload smoke log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: perfectify-server-smoke-log
+          path: perfectify-server-smoke.log
+          if-no-files-found: ignore
+          retention-days: 3
       - name: Upload test artifact
         uses: actions/upload-artifact@v4
         with:
