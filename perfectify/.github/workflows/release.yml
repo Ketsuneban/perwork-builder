@@ -1,0 +1,36 @@
+name: Perfectify Release
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+permissions:
+  contents: write
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.14.3'
+      - name: Verify tag matches mod version
+        shell: bash
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          grep -Fx "mod_version=${VERSION}" gradle.properties
+      - name: Build release jar
+        run: gradle --no-daemon clean build
+      - name: Compose bilingual release notes
+        run: cat CHANGELOG_RU.md CHANGELOG_EN.md > release-notes.md
+      - name: Publish GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "${GITHUB_REF_NAME}" build/libs/*.jar --title "Perfectify ${GITHUB_REF_NAME}" --notes-file release-notes.md --verify-tag

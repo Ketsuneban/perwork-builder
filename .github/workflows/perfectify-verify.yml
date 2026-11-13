@@ -1,0 +1,35 @@
+name: Perfectify Verification
+on:
+  push:
+    branches: [feature/perfectify]
+    paths:
+      - 'perfectify/**'
+      - '.github/workflows/perfectify-verify.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.14.3'
+      - name: Compile Perfectify
+        run: gradle --no-daemon --project-dir perfectify clean build --stacktrace
+      - name: Verify Jar
+        run: jar tf perfectify/build/libs/perfectify-*.jar | grep 'dev/ketsuneban/perfectify/Perfectify.class'
+      - name: Upload test artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: perfectify-alpha-test
+          path: perfectify/build/libs/*.jar
+          retention-days: 3
