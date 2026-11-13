@@ -1,4 +1,4 @@
-package dev.ketsuneban.studioexample.mixin;
+package dev.ketsuneban.perfectify.mixin;
 
 import java.util.List;
 import net.minecraft.client.Minecraft;
@@ -13,10 +13,6 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
-/**
- * Display 8x8 skin portraits next to visible player chat lines.
- * The chat renderer is shifted right by 11 pixels to leave room for avatars.
- */
 @Mixin(ChatComponent.class)
 public abstract class ChatHeadMixin {
     @Shadow @Final private Minecraft minecraft;

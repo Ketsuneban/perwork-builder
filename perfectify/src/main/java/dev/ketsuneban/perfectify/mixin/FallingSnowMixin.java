@@ -1,4 +1,4 @@
-package dev.ketsuneban.studioexample.mixin;
+package dev.ketsuneban.perfectify.mixin;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -13,10 +13,6 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
-/**
- * Vanilla destroys unsupported snow layers. Replace the break with a falling
- * entity carrying the exact BlockState, so layer height is preserved on landing.
- */
 @Mixin(SnowLayerBlock.class)
 public abstract class FallingSnowMixin {
     @Inject(method = "updateShape", at = @At("HEAD"), cancellable = true)

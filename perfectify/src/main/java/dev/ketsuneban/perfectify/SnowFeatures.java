@@ -1,4 +1,4 @@
-package dev.ketsuneban.studioexample;
+package dev.ketsuneban.perfectify;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
@@ -10,11 +10,7 @@ import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.event.tick.ServerTickEvent;
 
-/**
- * A few random snow samples per player every five seconds during snowfall.
- * No chunk loading, no scanning the entire biome, no tall snow stacks.
- */
-@EventBusSubscriber(modid = StudioExample.MOD_ID)
+@EventBusSubscriber(modid = Perfectify.MOD_ID)
 public final class SnowFeatures {
     public static final int MAX_SNOW_LAYERS = 5;
     private static int ticks;
@@ -47,8 +43,7 @@ public final class SnowFeatures {
                         }
                     } else {
                         var overlay = level.getBlockState(sky);
-                        // Snow can replace small non-solid grass/flowers, covering instead of
-                        // leaving arbitrary holes. Tall plants must be handled by vanilla first.
+
                         boolean soft = overlay.isAir() || overlay.is(Blocks.SHORT_GRASS)
                             || overlay.is(Blocks.FERN) || overlay.is(Blocks.DEAD_BUSH)
                             || overlay.is(Blocks.DANDELION) || overlay.is(Blocks.POPPY)

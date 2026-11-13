@@ -1,4 +1,4 @@
-package dev.ketsuneban.studioexample.client;
+package dev.ketsuneban.perfectify.client;
 
 import com.mojang.blaze3d.platform.NativeImage;
 import java.io.IOException;
@@ -10,11 +10,6 @@ import net.minecraft.client.renderer.texture.DynamicTexture;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.DyeColor;
 
-/**
- * Produce recolored sheared-sheep skin from the player's installed Minecraft
- * texture at runtime. It does not redistribute Mojang's copyrighted texture.
- * Only neutral wool-like texels are tinted; face/skin colors stay intact.
- */
 public final class ShearedSheepTextures {
     private static final ResourceLocation VANILLA =
             ResourceLocation.withDefaultNamespace("textures/entity/sheep/sheep.png");
@@ -47,7 +42,6 @@ public final class ShearedSheepTextures {
                         int green = (packed >> 8) & 255;
                         int blue = (packed >> 16) & 255;
 
-                        // Restrict recoloring to desaturated, light remnants.
                         int range = Math.max(red, Math.max(green, blue))
                             - Math.min(red, Math.min(green, blue));
                         if (alpha > 10 && red > 180 && green > 180 && blue > 180
@@ -60,7 +54,7 @@ public final class ShearedSheepTextures {
                         }
                     }
                 }
-                // DynamicTexture owns native image memory after registration.
+
                 ResourceLocation key = mc.getTextureManager()
                     .register("studio_sheared_" + color.getName(),
                         new DynamicTexture(image.mappedCopy(px -> px)));
