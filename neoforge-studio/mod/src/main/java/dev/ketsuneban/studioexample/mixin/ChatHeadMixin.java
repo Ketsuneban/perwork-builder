@@ -1,7 +1,6 @@
 package dev.ketsuneban.studioexample.mixin;
 
 import java.util.List;
-import java.util.regex.Pattern;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.GuiMessage;
 import net.minecraft.client.gui.GuiGraphics;
@@ -53,8 +52,11 @@ public abstract class ChatHeadMixin {
 
             for (PlayerInfo info : minecraft.getConnection().getOnlinePlayers()) {
                 String player = info.getProfile().getName();
-                if (s.matches("(?s)^.{0,32}[<\\\\[]?" + Pattern.quote(player)
-                       + "[>\\\\]]?(?::|\\\\s).*$")) {
+                int start = s.indexOf(player);
+                if (start >= 0 && start <= 32
+                        && (start == 0 || !Character.isLetterOrDigit(s.charAt(start - 1)))
+                        && (start + player.length() == s.length()
+                            || !Character.isLetterOrDigit(s.charAt(start + player.length())))) {
                     int y = g.guiHeight() - 39
                         - (int)Math.round((i + 1) * 9 * scale);
                     g.fill(2, y - 1, 13, y + 10, 0xAA101A2A);
