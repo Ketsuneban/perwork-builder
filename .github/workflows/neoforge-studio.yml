@@ -1,0 +1,52 @@
+name: NeoForge Studio - Minecraft 1.21.1
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'neoforge-studio/mod/**'
+      - '.github/workflows/neoforge-studio.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: neoforge-studio-build
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build NeoForge mod on Java 21
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.14.3'
+      - name: Compile and save logs
+        shell: bash
+        run: |
+          set -o pipefail
+          gradle --no-daemon --project-dir neoforge-studio/mod clean build --stacktrace 2>&1 | tee neoforge-studio-build.log
+      - name: Upload JAR
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: neoforge-1.21.1-mod
+          path: neoforge-studio/mod/build/libs/*.jar
+          if-no-files-found: error
+          retention-days: 7
+      - name: Upload logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: neoforge-build-log
+          path: neoforge-studio-build.log
+          retention-days: 3
