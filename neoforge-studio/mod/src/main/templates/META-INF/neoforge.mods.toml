@@ -7,7 +7,7 @@ modId="${mod_id}"
 version="${mod_version}"
 displayName="${mod_name}"
 authors="NeoForge Studio"
-description='''A mod created using NeoForge Studio for Minecraft 1.21.1.'''
+description='''Client-side secret Title: tap NumPad 9, 9, 3 in sequence to reveal a colourful message.'''
 
 [[dependencies.${mod_id}]]
 modId="neoforge"
