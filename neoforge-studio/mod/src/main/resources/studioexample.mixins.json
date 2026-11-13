@@ -1,0 +1,16 @@
+{
+  "required": true,
+  "minVersion": "0.8.5",
+  "package": "dev.ketsuneban.studioexample.mixin",
+  "compatibilityLevel": "JAVA_21",
+  "mixins": [
+    "FallingSnowMixin"
+  ],
+  "client": [
+    "ShieldHandRendererMixin",
+    "MapPaletteMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

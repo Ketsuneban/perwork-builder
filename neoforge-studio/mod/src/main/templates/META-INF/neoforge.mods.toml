@@ -9,6 +9,9 @@ displayName="${mod_name}"
 authors="NeoForge Studio"
 description='''Client-side secret Title: tap NumPad 9, 9, 3 in sequence to reveal a colourful message.'''
 
+[[mixins]]
+config="studioexample.mixins.json"
+
 [[dependencies.${mod_id}]]
 modId="neoforge"
 type="required"
