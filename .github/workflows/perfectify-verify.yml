@@ -52,6 +52,17 @@ jobs:
           path: perfectify-server-smoke.log
           if-no-files-found: ignore
           retention-days: 3
+      - name: Package standalone source
+        shell: bash
+        run: |
+          cd perfectify
+          zip -rq ../perfectify-source.zip . -x 'build/*' '.gradle/*' 'run/*' '*.class'
+      - name: Upload standalone source
+        uses: actions/upload-artifact@v4
+        with:
+          name: perfectify-standalone-source
+          path: perfectify-source.zip
+          retention-days: 7
       - name: Upload test artifact
         uses: actions/upload-artifact@v4
         with:
