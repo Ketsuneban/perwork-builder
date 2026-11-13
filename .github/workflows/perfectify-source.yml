@@ -1,0 +1,26 @@
+name: Perfectify Source Export
+on:
+  push:
+    branches: [feature/perfectify]
+    paths:
+      - 'perfectify/**'
+      - '.github/workflows/perfectify-source.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  export:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Package standalone Perfectify sources
+        run: |
+          cd perfectify
+          zip -rq ../Perfectify-source.zip . -x 'build/*' '.gradle/*' 'run/*' '*.class'
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Perfectify-source
+          path: Perfectify-source.zip
+          retention-days: 7
