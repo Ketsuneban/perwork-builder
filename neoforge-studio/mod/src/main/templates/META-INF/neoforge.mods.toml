@@ -7,7 +7,7 @@ modId="${mod_id}"
 version="${mod_version}"
 displayName="${mod_name}"
 authors="NeoForge Studio"
-description='''Client-side secret Title: tap NumPad 9, 9, 3 in sequence to reveal a colourful message.'''
+description='''Bedrock-inspired recipes, armor stands, cauldrons, snow, smarter monsters, and colorful chat for NeoForge 1.21.1.'''
 
 [[mixins]]
 config="studioexample.mixins.json"

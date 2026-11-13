@@ -243,13 +243,16 @@ public final class CauldronFeatures {
         for (int dx = -7; dx <= 7; dx++) for (int dz = -7; dz <= 7; dz++)
             for (int dy = -3; dy <= 3; dy++) {
                 BlockPos pos = center.offset(dx, dy, dz);
-                if (!level.getBlockState(pos).is(Blocks.CAULDRON) || data.hutSeen(pos))
+                if (!level.hasChunkAt(pos) ||
+                    !level.getBlockState(pos).is(Blocks.CAULDRON) || data.hutSeen(pos))
                     continue;
                 // Witch hut fingerprint: cauldron, crafting table and potted red mushroom.
                 boolean crafting = false, mushroom = false;
                 for (int x = -3; x <= 3; x++) for (int z = -3; z <= 3; z++) {
                     for (int y = -1; y <= 2; y++) {
-                        BlockState s = level.getBlockState(pos.offset(x, y, z));
+                        BlockPos sample = pos.offset(x, y, z);
+                        if (!level.hasChunkAt(sample)) continue;
+                        BlockState s = level.getBlockState(sample);
                         if (s.is(Blocks.CRAFTING_TABLE)) crafting = true;
                         if (s.is(Blocks.POTTED_RED_MUSHROOM)) mushroom = true;
                     }
