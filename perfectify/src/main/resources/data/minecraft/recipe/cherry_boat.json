@@ -1,0 +1,16 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "transportation",
+  "pattern": [
+    "PSP",
+    "PPP"
+  ],
+  "key": {
+    "P": "minecraft:cherry_planks",
+    "S": "minecraft:wooden_shovel"
+  },
+  "result": {
+    "id": "minecraft:cherry_boat",
+    "count": 1
+  }
+}
