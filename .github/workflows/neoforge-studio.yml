@@ -1,7 +1,7 @@
 name: NeoForge Studio - Minecraft 1.21.1
 on:
   push:
-    branches: [main]
+    branches: [main, feature/neoforge-next-tasks]
     paths:
       - 'neoforge-studio/mod/**'
       - '.github/workflows/neoforge-studio.yml'
