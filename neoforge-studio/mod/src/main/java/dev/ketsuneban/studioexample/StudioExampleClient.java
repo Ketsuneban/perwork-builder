@@ -67,13 +67,13 @@ public final class StudioExampleClient {
         // Values are in ticks: 0.5s fade in, 3.5s visible, 1s fade out.
         minecraft.gui.setTimes(10, 70, 20);
         minecraft.gui.setSubtitle(
-            Component.literal("993 ").withStyle(ChatFormatting.AQUA, ChatFormatting.BOLD)
-                .append(Component.literal("• СЕКРЕТ РАСКРЫТ")
-                    .withStyle(ChatFormatting.LIGHT_PURPLE))
+            Component.literal("NUMPAD 993 ").withStyle(ChatFormatting.AQUA, ChatFormatting.BOLD)
+                .append(Component.literal("• EVENT RECEIVED")
+                    .withStyle(ChatFormatting.GRAY))
         );
         minecraft.gui.setTitle(
-            Component.literal("✦ ТАЙНЫЙ КОД ✦")
-                .withStyle(ChatFormatting.GOLD, ChatFormatting.BOLD)
+            Component.literal("SYSTEM EVENT")
+                .withStyle(ChatFormatting.GREEN, ChatFormatting.BOLD)
         );
     }
 }
