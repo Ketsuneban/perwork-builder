@@ -1,0 +1,16 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "transportation",
+  "pattern": [
+    "PSP",
+    "PPP"
+  ],
+  "key": {
+    "P": "minecraft:jungle_planks",
+    "S": "minecraft:wooden_shovel"
+  },
+  "result": {
+    "id": "minecraft:jungle_boat",
+    "count": 1
+  }
+}
