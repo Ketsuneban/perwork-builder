@@ -105,11 +105,13 @@ public final class CauldronFeatures {
             var content = CauldronStorage.of(sl);
             String id = potionId(incoming);
             var old = content.get(pos);
-            if (old != null && old.isPotion() && !old.potion().equals(id)) {
+            if (old != null && (!old.isPotion() || !old.potion().equals(id) || !old.item().equals(kind(held)))) {
                 update(sl, pos, null);
                 sl.levelEvent(2002, pos, incoming.getColor());
                 take(e.getEntity(), held, 1);
-                give(e.getEntity(), new ItemStack(Items.GLASS_BOTTLE));
+                if (!e.getEntity().getAbilities().instabuild)
+                if (!e.getEntity().getAbilities().instabuild)
+                    give(e.getEntity(), new ItemStack(Items.GLASS_BOTTLE));
                 return;
             }
             if (old == null && state.is(Blocks.WATER_CAULDRON)) {
@@ -145,7 +147,7 @@ public final class CauldronFeatures {
             interactDone(e);
             if (!(level instanceof ServerLevel sl)) return;
             int count = Math.min(held.getCount(), 16);
-            int cost = 1;
+            int cost = stored.units() < 4 ? stored.units() : 1;
             if (held.getCount() > 32 && stored.units() >= 6) {
                 count = Math.min(64, held.getCount()); cost = 6;
             } else if (held.getCount() > 16 && stored.units() >= 4) {
