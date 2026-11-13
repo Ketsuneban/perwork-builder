@@ -24,6 +24,13 @@
 - Corrected tipped-arrow fluid usage when only 1–3 units remain.
 - Prevented extra empty bottles when pouring potions in Creative mode.
 
+### Pose accuracy and validation
+- Transcribed all 13 armor stand pose rotations from Mojang's official animation samples.
+- Redstone signal strength now selects a specific pose instead of a random preset.
+- Sneak-interact with an empty hand cycles poses; a held item swaps with the stand's offhand.
+- Dedicated-server checks require an actual startup-complete message rather than Gradle's exit code alone.
+- Added a standalone source archive for transferring the project into a new repository.
+
 ### Status
 - Ported gameplay is still experimental.
 - In-game validation is required for Mixins, cauldron synchronization, and Bedrock behavior parity.
