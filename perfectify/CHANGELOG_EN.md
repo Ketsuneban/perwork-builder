@@ -19,6 +19,11 @@
 - Softer map colors, shield animation changes, and sheared sheep wool coloring.
 - Chat formatting, highlighted player names, and skin portraits.
 
+### Fixes
+- Prevented mixing incompatible potion bottle variants without clearing the cauldron.
+- Corrected tipped-arrow fluid usage when only 1–3 units remain.
+- Prevented extra empty bottles when pouring potions in Creative mode.
+
 ### Status
 - Ported gameplay is still experimental.
 - In-game validation is required for Mixins, cauldron synchronization, and Bedrock behavior parity.

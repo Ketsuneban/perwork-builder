@@ -109,9 +109,8 @@ public final class CauldronFeatures {
                 update(sl, pos, null);
                 sl.levelEvent(2002, pos, incoming.getColor());
                 take(e.getEntity(), held, 1);
-                if (!e.getEntity().getAbilities().instabuild)
-                if (!e.getEntity().getAbilities().instabuild)
-                    give(e.getEntity(), new ItemStack(Items.GLASS_BOTTLE));
+                    if (!e.getEntity().getAbilities().instabuild)
+                        give(e.getEntity(), new ItemStack(Items.GLASS_BOTTLE));
                 return;
             }
             if (old == null && state.is(Blocks.WATER_CAULDRON)) {
@@ -119,14 +118,16 @@ public final class CauldronFeatures {
                 update(sl, pos, null);
                 sl.levelEvent(2002, pos, incoming.getColor());
                 take(e.getEntity(), held, 1);
-                give(e.getEntity(), new ItemStack(Items.GLASS_BOTTLE));
+                if (!e.getEntity().getAbilities().instabuild)
+                    give(e.getEntity(), new ItemStack(Items.GLASS_BOTTLE));
                 return;
             }
             int units = old != null ? old.units() : 0;
             if (units >= 6) return;
             update(sl, pos, CauldronStorage.Contents.potion(id, kind(held), Math.min(6, units + 2)));
             take(e.getEntity(), held, 1);
-            give(e.getEntity(), new ItemStack(Items.GLASS_BOTTLE));
+            if (!e.getEntity().getAbilities().instabuild)
+                give(e.getEntity(), new ItemStack(Items.GLASS_BOTTLE));
             return;
         }
 
