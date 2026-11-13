@@ -8,7 +8,9 @@
   ],
   "client": [
     "ShieldHandRendererMixin",
-    "MapPaletteMixin"
+    "MapPaletteMixin",
+    "SheepRendererMixin",
+    "ChatHeadMixin"
   ],
   "injectors": {
     "defaultRequire": 1

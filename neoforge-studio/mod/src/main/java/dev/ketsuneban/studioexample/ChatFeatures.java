@@ -80,8 +80,8 @@ public final class ChatFeatures {
             result.append(Component.literal(text).setStyle(style));
             return;
         }
-        var matcher = Pattern.compile("(?i)(?<![\\\\p{L}\\\\p{N}_])(?:" + regex +
-                                     ")(?![\\\\p{L}\\\\p{N}_])").matcher(text);
+        var matcher = Pattern.compile("(?i)(?<![A-Za-z0-9_])(?:" + regex +
+                                     ")(?![A-Za-z0-9_])").matcher(text);
         int offset = 0;
         while (matcher.find()) {
             if (matcher.start() > offset) {
