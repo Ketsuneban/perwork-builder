@@ -1,4 +1,4 @@
-package dev.ketsuneban.studioexample.mixin;
+package dev.ketsuneban.perfectify.mixin;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.ItemInHandRenderer;
@@ -9,10 +9,6 @@ import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.ModifyVariable;
 
-/**
- * Remove the equipment-interpolation dip when starting a shield block.
- * This only alters the visual animation, never shield hit validation.
- */
 @Mixin(ItemInHandRenderer.class)
 public abstract class ShieldHandRendererMixin {
     @Shadow @Final private Minecraft minecraft;

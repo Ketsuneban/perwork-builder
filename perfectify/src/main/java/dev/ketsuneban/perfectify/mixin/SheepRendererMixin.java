@@ -1,6 +1,6 @@
-package dev.ketsuneban.studioexample.mixin;
+package dev.ketsuneban.perfectify.mixin;
 
-import dev.ketsuneban.studioexample.client.ShearedSheepTextures;
+import dev.ketsuneban.perfectify.client.ShearedSheepTextures;
 import net.minecraft.client.renderer.entity.SheepRenderer;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.animal.Sheep;
@@ -9,7 +9,6 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
-/** Keep visible wool-colored remnants when the sheep is sheared. */
 @Mixin(SheepRenderer.class)
 public abstract class SheepRendererMixin {
     @Inject(method = "getTextureLocation", at = @At("RETURN"), cancellable = true)

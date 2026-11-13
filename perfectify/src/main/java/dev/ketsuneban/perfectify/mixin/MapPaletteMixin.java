@@ -1,4 +1,4 @@
-package dev.ketsuneban.studioexample.mixin;
+package dev.ketsuneban.perfectify.mixin;
 
 import net.minecraft.world.level.material.MapColor;
 import org.spongepowered.asm.mixin.Mixin;
@@ -6,11 +6,6 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
-/**
- * Client-side warm, legible map palette:
- * modestly reduce harsh saturation, lift shadow detail, preserve transparency.
- * The original packed map color IDs remain compatible with vanilla maps.
- */
 @Mixin(MapColor.class)
 public abstract class MapPaletteMixin {
     @Inject(method = "getColorFromPackedId", at = @At("RETURN"), cancellable = true)
